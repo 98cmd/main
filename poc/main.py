@@ -108,6 +108,7 @@ async def run(args: argparse.Namespace) -> int:
                         license_number="",
                         is_staffing_or_dispatch_company=True,
                         source_url=listing.detail_url,
+                        kyujinbox_company_url="",
                         listing=listing,
                     )
                 else:
@@ -172,6 +173,7 @@ async def run(args: argparse.Namespace) -> int:
                 "license_number",
                 "is_staffing_or_dispatch_company",
                 "source_url",
+                "kyujinbox_company_url",
                 "address",
                 "phone",
                 "mhlw_kind",

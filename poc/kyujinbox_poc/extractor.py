@@ -67,6 +67,7 @@ DETAIL_SCHEMA = {
         "contact_form_url": {"type": "string"},
         "industry_summary": {"type": "string"},
         "license_number": {"type": "string"},
+        "kyujinbox_company_url": {"type": "string"},
         "is_staffing_or_dispatch_company": {"type": "boolean"},
     },
     "required": [
@@ -75,6 +76,7 @@ DETAIL_SCHEMA = {
         "contact_form_url",
         "industry_summary",
         "license_number",
+        "kyujinbox_company_url",
         "is_staffing_or_dispatch_company",
     ],
 }
@@ -97,7 +99,8 @@ class CompanyDetail:
     industry_summary: str
     license_number: str
     is_staffing_or_dispatch_company: bool
-    source_url: str = ""
+    source_url: str = ""  # 求人ボックスの求人詳細ページ URL
+    kyujinbox_company_url: str = ""  # 求人ボックスの会社専用ページ（あれば）
     listing: Listing | None = None
     outreach_message: str = ""
     # 厚労省サイトからの補完情報
@@ -133,6 +136,7 @@ SYSTEM_PROMPT_DETAIL = """\
 - contact_form_url は問い合わせフォームのURL。トップページしか分からない場合は空文字。
 - license_number は「(派) ○○-○○」「有料職業紹介許可番号 ○○」等の許可番号。無ければ空文字。
 - industry_summary は1〜2行で当該企業のビジネスを要約（人材紹介専業／製造特化派遣／など）。
+- kyujinbox_company_url は **求人ボックス内の会社専用ページ** の URL（例: 「この企業の他の求人を見る」リンクの先、`/co/<id>` や `/cm/<id>` のようなパス）。求人詳細ページそのもの（/jb/<hash>）は不可。見つからない場合は空文字列。punycode ホスト `xn--pckua2a7gp15o89zb.com` を使うこと。
 - 不明な項目は空文字列にする。憶測で補完しない。
 """
 
@@ -183,4 +187,7 @@ class ClaudeExtractor:
         )
         text = next(b.text for b in response.content if b.type == "text")
         data = json.loads(text)
+        # kyujinbox_company_url も幻覚対策で正規化
+        if "kyujinbox_company_url" in data:
+            data["kyujinbox_company_url"] = _normalize_kyujinbox_url(data["kyujinbox_company_url"])
         return CompanyDetail(source_url=source_url, **data)
