@@ -24,6 +24,7 @@ from dotenv import load_dotenv
 from kyujinbox_poc.extractor import ClaudeExtractor
 from kyujinbox_poc.mynavi import fetch_listings as fetch_mynavi
 from kyujinbox_poc.scraper import KyujinboxScraper
+from kyujinbox_poc.wantedly import fetch_listings as fetch_wantedly
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("cross_filter")
@@ -31,8 +32,10 @@ log = logging.getLogger("cross_filter")
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="他媒体→求人ボックス未出稿リードリスト生成")
-    p.add_argument("--source", choices=["mynavi"], default="mynavi", help="母集団の媒体")
+    p.add_argument("--source", choices=["mynavi", "wantedly"], default="mynavi", help="母集団の媒体")
     p.add_argument("--max-companies", type=int, default=100)
+    p.add_argument("--source-access-delay", type=float, default=5.0,
+                   help="母集団取得時のアクセス間隔（秒）")
     p.add_argument("--mynavi-access-delay", type=float, default=5.0)
     p.add_argument("--kyujinbox-access-delay", type=float, default=5.0)
     p.add_argument("--max-source-pages", type=int, default=10)
@@ -49,6 +52,12 @@ async def run(args: argparse.Namespace) -> int:
         listings = fetch_mynavi(
             max_companies=args.max_companies,
             access_delay=args.mynavi_access_delay,
+            max_pages=args.max_source_pages,
+        )
+    elif args.source == "wantedly":
+        listings = fetch_wantedly(
+            max_companies=args.max_companies,
+            access_delay=args.source_access_delay,
             max_pages=args.max_source_pages,
         )
     else:

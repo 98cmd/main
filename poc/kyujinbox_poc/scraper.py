@@ -32,7 +32,7 @@ class FetchedPage:
     cleaned_html: str
 
 
-def _strip_html(raw_html: str, max_len: int = 180_000) -> str:
+def _strip_html(raw_html: str, max_len: int = 80_000) -> str:
     soup = BeautifulSoup(raw_html, "html.parser")
     for tag in soup(["script", "style", "noscript", "iframe", "svg", "header", "footer", "nav"]):
         tag.decompose()
