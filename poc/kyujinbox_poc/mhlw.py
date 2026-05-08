@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
+import unicodedata
 from dataclasses import dataclass, asdict
 from typing import Any
 
@@ -80,7 +82,25 @@ class MHLWLookup:
             await self._pw.stop()
 
     async def lookup(self, operator_name: str) -> dict[str, list[MHLWBusiness]]:
-        """会社名で紹介・派遣両方を検索。{'shoukai': [...], 'haken': [...]} を返す。"""
+        """会社名で紹介・派遣両方を検索。0 件なら表記揺れバリエーションでフォールバック。"""
+        # まず本来の名前で検索
+        out = await self._lookup_one(operator_name)
+        total = len(out["shoukai"]) + len(out["haken"])
+        if total > 0:
+            return out
+
+        # フォールバック: 「株式会社」削除や半角化バリエーションで再試行
+        for variant in generate_name_variants(operator_name):
+            log.info("MHLW retry with variant: %r", variant)
+            out = await self._lookup_one(variant)
+            if len(out["shoukai"]) + len(out["haken"]) > 0:
+                log.info("MHLW variant hit: %r → shoukai=%d haken=%d",
+                         variant, len(out["shoukai"]), len(out["haken"]))
+                return out
+        return out  # 全部 0 のまま返す
+
+    async def _lookup_one(self, operator_name: str) -> dict[str, list[MHLWBusiness]]:
+        """指定された会社名 1 つで紹介・派遣両方を検索。"""
         out: dict[str, list[MHLWBusiness]] = {"shoukai": [], "haken": []}
         for kind, init_url in [("shoukai", INIT_SHOUKAI), ("haken", INIT_HAKEN)]:
             try:
@@ -149,6 +169,50 @@ class MHLWLookup:
                 phone=phones[i],
             ))
         return out
+
+
+def generate_name_variants(name: str) -> list[str]:
+    """会社名から表記揺れバリエーションを生成（元の名前は含めない、重複なし）。
+
+    厚労省サイトの検索は登録上の表記との完全/部分一致が必要なため、以下を試す:
+    - 「株式会社」「(株)」を前後から除去
+    - NFKC 正規化（全角英数 → 半角英数）
+    - 上記の組み合わせ
+    """
+    out: list[str] = []
+    seen: set[str] = {name}
+
+    def add(v: str) -> None:
+        v = v.strip()
+        if v and v not in seen:
+            out.append(v)
+            seen.add(v)
+
+    patterns = [
+        r"^株式会社[\s　]*",
+        r"[\s　]*株式会社$",
+        r"^[（\(]株[）\)][\s　]*",
+        r"[\s　]*[（\(]株[）\)]$",
+        r"^有限会社[\s　]*",
+        r"^合同会社[\s　]*",
+    ]
+
+    # 元の名前から法人格を除去
+    for pat in patterns:
+        v = re.sub(pat, "", name)
+        if v != name:
+            add(v)
+
+    # 全角 → 半角（英数字）
+    nfkc = unicodedata.normalize("NFKC", name)
+    if nfkc != name:
+        add(nfkc)
+        for pat in patterns:
+            v = re.sub(pat, "", nfkc)
+            if v != nfkc:
+                add(v)
+
+    return out
 
 
 def pick_primary(matches: list[MHLWBusiness], target_name: str) -> MHLWBusiness | None:
