@@ -6,9 +6,18 @@ import csv
 import json
 import logging
 import os
+import unicodedata
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+
+def _normalize_company_name(name: str) -> str:
+    """重複排除用の正規化。NFKC（全角→半角等）+ trim + 連続空白を 1 つに圧縮。"""
+    if not name:
+        return ""
+    s = unicodedata.normalize("NFKC", name).strip()
+    return " ".join(s.split())
 
 from kyujinbox_poc.extractor import ClaudeExtractor, CompanyDetail
 from kyujinbox_poc.generator import OutreachGenerator, SenderProfile
@@ -76,7 +85,7 @@ async def run(args: argparse.Namespace) -> int:
         await mhlw_ctx.__aenter__()
     async with KyujinboxScraper(access_delay=args.access_delay) as scraper:
         seen_urls: set[str] = set()
-        seen_companies: set[str] = set()  # 会社名ベースで重複排除（同社の別求人は除外）
+        seen_companies: set[str] = set()  # 会社名ベースで重複排除（NFKC 正規化済みのキーを保持）
         for page_no in range(1, args.max_pages + 1):
             if len(targets) >= args.max_listings:
                 break
@@ -91,13 +100,11 @@ async def run(args: argparse.Namespace) -> int:
                     continue
                 if listing.detail_url in seen_urls:
                     continue
-                normalized_name = listing.company_name.strip()
-                if normalized_name and normalized_name in seen_companies:
-                    log.info("skip duplicate company: %s", normalized_name)
+                listing_key = _normalize_company_name(listing.company_name)
+                if listing_key and listing_key in seen_companies:
+                    log.info("skip duplicate company (listing): %s", listing.company_name)
                     continue
                 seen_urls.add(listing.detail_url)
-                if normalized_name:
-                    seen_companies.add(normalized_name)
 
                 if args.no_detail:
                     detail = CompanyDetail(
@@ -119,6 +126,16 @@ async def run(args: argparse.Namespace) -> int:
                     except Exception as exc:
                         log.warning("detail fetch failed: %s — %s", listing.detail_url, exc)
                         continue
+
+                # detail 抽出後にも会社名で重複排除（listing と detail で会社名が変わるケース対応）
+                detail_key = _normalize_company_name(detail.company_name)
+                if detail_key and detail_key in seen_companies:
+                    log.info("skip duplicate company (detail): %s", detail.company_name)
+                    continue
+                if detail_key:
+                    seen_companies.add(detail_key)
+                if listing_key and listing_key != detail_key:
+                    seen_companies.add(listing_key)
 
                 # 厚労省サイト補完（オプション）
                 if mhlw_ctx is not None and detail.company_name:
