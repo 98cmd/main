@@ -4,12 +4,31 @@ import json
 import logging
 from dataclasses import dataclass, field, asdict
 from typing import Any
+from urllib.parse import urlparse, urlunparse
 
 import anthropic
 
+KYUJINBOX_HOST = "xn--pckua2a7gp15o89zb.com"
+
+
+def _normalize_kyujinbox_url(u: str) -> str:
+    """LLM が detail_url を "kyujinbox.com" 等に幻覚で書き換えた場合、punycode ホストに戻す。"""
+    if not u:
+        return u
+    try:
+        parsed = urlparse(u)
+        if parsed.netloc and parsed.netloc != KYUJINBOX_HOST:
+            # kyujinbox 系の幻覚ホストは強制的に punycode に置換
+            if "kyujinbox" in parsed.netloc.lower() or parsed.netloc.endswith(".com"):
+                return urlunparse(parsed._replace(netloc=KYUJINBOX_HOST))
+        return u
+    except Exception:
+        return u
+
 log = logging.getLogger(__name__)
 
-MODEL_ID = "claude-opus-4-7"
+import os
+MODEL_ID = os.getenv("MODEL_ID", "claude-sonnet-4-6")
 EXTRACT_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -81,6 +100,11 @@ class CompanyDetail:
     source_url: str = ""
     listing: Listing | None = None
     outreach_message: str = ""
+    # 厚労省サイトからの補完情報
+    address: str = ""
+    phone: str = ""
+    mhlw_kind: str = ""  # "shoukai" / "haken" / 両方なら "both"
+    mhlw_office_count: int = 0  # 検索ヒット事業所数
 
     def to_row(self) -> dict[str, Any]:
         row = asdict(self)
@@ -120,7 +144,7 @@ class ClaudeExtractor:
     def extract_listings(self, html: str) -> list[Listing]:
         response = self.client.messages.create(
             model=MODEL_ID,
-            max_tokens=8000,
+            max_tokens=16000,
             system=[
                 {
                     "type": "text",
@@ -135,12 +159,16 @@ class ClaudeExtractor:
         )
         text = next(b.text for b in response.content if b.type == "text")
         data = json.loads(text)
-        return [Listing(**item) for item in data["listings"]]
+        items = []
+        for raw in data["listings"]:
+            raw["detail_url"] = _normalize_kyujinbox_url(raw.get("detail_url", ""))
+            items.append(Listing(**raw))
+        return items
 
     def extract_detail(self, html: str, source_url: str = "") -> CompanyDetail:
         response = self.client.messages.create(
             model=MODEL_ID,
-            max_tokens=4000,
+            max_tokens=8000,
             system=[
                 {
                     "type": "text",

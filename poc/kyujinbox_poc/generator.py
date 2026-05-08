@@ -9,7 +9,8 @@ from .extractor import CompanyDetail
 
 log = logging.getLogger(__name__)
 
-MODEL_ID = "claude-opus-4-7"
+import os
+MODEL_ID = os.getenv("MODEL_ID", "claude-sonnet-4-6")
 
 
 @dataclass

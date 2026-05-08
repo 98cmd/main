@@ -2,5 +2,6 @@
 .venv/
 __pycache__/
 *.pyc
-output/results.csv
-output/results.json
+output/*
+!output/.gitkeep
+*.egg-info/

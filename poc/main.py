@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 
 from kyujinbox_poc.extractor import ClaudeExtractor, CompanyDetail
 from kyujinbox_poc.generator import OutreachGenerator, SenderProfile
+from kyujinbox_poc.mhlw import MHLWLookup, pick_primary
 from kyujinbox_poc.scraper import KyujinboxScraper
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -27,6 +28,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--output-dir", default="output")
     p.add_argument("--no-detail", action="store_true", help="詳細ページに行かず一覧情報のみで生成")
     p.add_argument("--no-generate", action="store_true", help="文章生成をスキップ（抽出のみ）")
+    p.add_argument("--mhlw", action="store_true", help="厚労省サイトで許可番号・住所・電話を補完")
+    p.add_argument("--dry-run", action="store_true",
+                   help="samples/ のサンプル HTML から listing 抽出のみ実行。実サイトに接続しない")
     return p.parse_args()
 
 
@@ -50,11 +54,29 @@ async def run(args: argparse.Namespace) -> int:
     extractor = ClaudeExtractor()
     sender = build_sender_profile()
     generator = None if args.no_generate else OutreachGenerator(sender)
+    mhlw_ctx = MHLWLookup(access_delay=3.0) if args.mhlw else None
+
+    # --dry-run: サンプル HTML から listing 抽出のみ実行（実サイトには行かない）
+    if args.dry_run:
+        sample = Path(__file__).resolve().parent / "samples" / "kyujinbox_search.html"
+        if not sample.exists():
+            log.error("dry-run sample missing: %s", sample)
+            return 1
+        log.info("DRY RUN: using %s (no live fetch)", sample)
+        listings = extractor.extract_listings(sample.read_text(encoding="utf-8"))
+        log.info("dry-run extracted %d listings", len(listings))
+        for i, l in enumerate(listings, 1):
+            tag = "STAFF" if l.is_staffing_or_dispatch_company else "other"
+            log.info("  [%d] %s [%s] %s -> %s", i, tag, l.company_name, l.job_title[:40], l.detail_url)
+        return 0
 
     targets: list[CompanyDetail] = []
 
+    if mhlw_ctx is not None:
+        await mhlw_ctx.__aenter__()
     async with KyujinboxScraper(access_delay=args.access_delay) as scraper:
         seen_urls: set[str] = set()
+        seen_companies: set[str] = set()  # 会社名ベースで重複排除（同社の別求人は除外）
         for page_no in range(1, args.max_pages + 1):
             if len(targets) >= args.max_listings:
                 break
@@ -69,7 +91,13 @@ async def run(args: argparse.Namespace) -> int:
                     continue
                 if listing.detail_url in seen_urls:
                     continue
+                normalized_name = listing.company_name.strip()
+                if normalized_name and normalized_name in seen_companies:
+                    log.info("skip duplicate company: %s", normalized_name)
+                    continue
                 seen_urls.add(listing.detail_url)
+                if normalized_name:
+                    seen_companies.add(normalized_name)
 
                 if args.no_detail:
                     detail = CompanyDetail(
@@ -91,6 +119,33 @@ async def run(args: argparse.Namespace) -> int:
                         log.warning("detail fetch failed: %s — %s", listing.detail_url, exc)
                         continue
 
+                # 厚労省サイト補完（オプション）
+                if mhlw_ctx is not None and detail.company_name:
+                    try:
+                        mhlw_data = await mhlw_ctx.lookup(detail.company_name)
+                        # 紹介を優先、無ければ派遣
+                        primary = (
+                            pick_primary(mhlw_data["shoukai"], detail.company_name)
+                            or pick_primary(mhlw_data["haken"], detail.company_name)
+                        )
+                        total = len(mhlw_data["shoukai"]) + len(mhlw_data["haken"])
+                        detail.mhlw_office_count = total
+                        if mhlw_data["shoukai"] and mhlw_data["haken"]:
+                            detail.mhlw_kind = "both"
+                        elif mhlw_data["shoukai"]:
+                            detail.mhlw_kind = "shoukai"
+                        elif mhlw_data["haken"]:
+                            detail.mhlw_kind = "haken"
+                        if primary:
+                            if not detail.license_number:
+                                detail.license_number = primary.license_number
+                            if not detail.address:
+                                detail.address = primary.address
+                            if not detail.phone:
+                                detail.phone = primary.phone
+                    except Exception as exc:
+                        log.warning("MHLW lookup failed for %s: %s", detail.company_name, exc)
+
                 if generator is not None:
                     try:
                         detail.outreach_message = generator.generate(detail)
@@ -99,6 +154,9 @@ async def run(args: argparse.Namespace) -> int:
 
                 targets.append(detail)
                 log.info("[%s/%s] %s", len(targets), args.max_listings, detail.company_name)
+
+    if mhlw_ctx is not None:
+        await mhlw_ctx.__aexit__(None, None, None)
 
     csv_path = output_dir / "results.csv"
     json_path = output_dir / "results.json"
@@ -114,6 +172,10 @@ async def run(args: argparse.Namespace) -> int:
                 "license_number",
                 "is_staffing_or_dispatch_company",
                 "source_url",
+                "address",
+                "phone",
+                "mhlw_kind",
+                "mhlw_office_count",
                 "outreach_message",
             ],
         )
@@ -130,6 +192,10 @@ async def run(args: argparse.Namespace) -> int:
 
 def main() -> int:
     load_dotenv()
+    # CLAUDE.md ルール準拠: ANTHROPIC_API_KEY を恒久 env に置かず、ANTHROPIC_API_KEY_SCRIPTS
+    # からプロセス起動時のみ流し込む。Claude Code Max サブスクと別の従量課金キーを分離する。
+    if not os.environ.get("ANTHROPIC_API_KEY") and os.environ.get("ANTHROPIC_API_KEY_SCRIPTS"):
+        os.environ["ANTHROPIC_API_KEY"] = os.environ["ANTHROPIC_API_KEY_SCRIPTS"]
     args = parse_args()
     return asyncio.run(run(args))
 

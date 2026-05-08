@@ -24,14 +24,14 @@ class FetchedPage:
     cleaned_html: str
 
 
-def _strip_html(raw_html: str) -> str:
+def _strip_html(raw_html: str, max_len: int = 180_000) -> str:
     soup = BeautifulSoup(raw_html, "html.parser")
     for tag in soup(["script", "style", "noscript", "iframe", "svg", "header", "footer", "nav"]):
         tag.decompose()
     body = soup.body or soup
     text_blob = body.decode(formatter="minimal")
-    if len(text_blob) > 60_000:
-        text_blob = text_blob[:60_000]
+    if len(text_blob) > max_len:
+        text_blob = text_blob[:max_len]
     return text_blob
 
 
@@ -70,10 +70,13 @@ class KyujinboxScraper:
         return FetchedPage(url=url, cleaned_html=_strip_html(raw))
 
     def search_url(self, query: str, page_no: int = 1) -> str:
-        encoded = quote(query)
+        # 求人ボックスはパスベース URL: /<keyword>の仕事
+        # スペースはハイフン区切り、末尾「の仕事」はハイフン無しで連結
+        keyword_path = quote(query.replace("　", " ").strip().replace(" ", "-"))
+        base = f"{KYUJINBOX_BASE}/{keyword_path}の仕事"
         if page_no <= 1:
-            return f"{KYUJINBOX_BASE}/?e={encoded}"
-        return f"{KYUJINBOX_BASE}/?e={encoded}&pg={page_no}"
+            return base
+        return f"{base}?pg={page_no}"
 
     async def fetch_search(self, query: str, page_no: int = 1) -> FetchedPage:
         page = await self._fetch(self.search_url(query, page_no))
