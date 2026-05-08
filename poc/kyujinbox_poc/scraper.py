@@ -2,14 +2,22 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import unicodedata
 from dataclasses import dataclass
-from typing import AsyncIterator
+from typing import AsyncIterator, TYPE_CHECKING
 from urllib.parse import quote
 
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright, Browser, BrowserContext
 
+if TYPE_CHECKING:
+    from .extractor import ClaudeExtractor
+
 log = logging.getLogger(__name__)
+
+
+def _norm(s: str) -> str:
+    return " ".join(unicodedata.normalize("NFKC", (s or "").strip()).split())
 
 KYUJINBOX_BASE = "https://xn--pckua2a7gp15o89zb.com"
 USER_AGENT = (
@@ -91,3 +99,72 @@ class KyujinboxScraper:
     async def crawl(self, query: str, max_pages: int = 2) -> AsyncIterator[FetchedPage]:
         for page_no in range(1, max_pages + 1):
             yield await self.fetch_search(query, page_no)
+
+    async def check_existence(
+        self,
+        company_name: str,
+        extractor: "ClaudeExtractor | None" = None,
+        retries: int = 2,
+    ) -> tuple[bool, str, int, list[str]]:
+        """会社名で求人ボックス検索 → AI 抽出で listing の company_name と一致判定。
+
+        フリーテキスト検索だと類似名の他社が大量にヒットするため、AI で抽出した
+        listing.company_name を NFKC 正規化して target と比較する。
+
+        Returns:
+            (exists, search_url, listing_count, matched_company_names)
+            - exists: True なら検索結果に対象会社の listing が含まれる（出稿あり）
+            - search_url: 検索 URL
+            - listing_count: 抽出された listing 総数（参考）
+            - matched_company_names: マッチした listing の会社名リスト（人間レビュー用）
+        """
+        from .extractor import ClaudeExtractor as _ClaudeExtractor
+
+        if extractor is None:
+            extractor = _ClaudeExtractor()
+        url = self.search_url(company_name)
+
+        last_exc: Exception | None = None
+        page = None
+        for attempt in range(retries + 1):
+            try:
+                page = await self._fetch(url)
+                break
+            except Exception as e:
+                last_exc = e
+                if attempt < retries:
+                    await asyncio.sleep(2.0 * (attempt + 1))
+                else:
+                    raise
+        if page is None:
+            raise last_exc or RuntimeError("fetch failed")
+
+        await asyncio.sleep(self.access_delay)
+        html = page.cleaned_html
+
+        # 明示的な「該当なし」表示なら即 False
+        no_hit_markers = (
+            "該当する求人がありません",
+            "該当する求人が見つかりません",
+            "0件中0件",
+        )
+        if any(m in html for m in no_hit_markers):
+            return False, url, 0, []
+
+        # AI で listing 抽出 → 会社名一致判定
+        try:
+            listings = extractor.extract_listings(html)
+        except Exception as e:
+            log.warning("extract_listings failed for %r: %s", company_name, e)
+            return False, url, 0, []
+
+        target = _norm(company_name)
+        matched: list[str] = []
+        for l in listings:
+            cand = _norm(l.company_name)
+            if not cand:
+                continue
+            # 完全一致 or 双方向の包含関係（営業上「同じ会社」と判定して良い範囲）
+            if cand == target or target in cand or cand in target:
+                matched.append(l.company_name)
+        return len(matched) > 0, url, len(listings), matched
