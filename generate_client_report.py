@@ -48,9 +48,8 @@ def is_valid_message(msg: str) -> bool:
     return "件名:" in m[:120] or "件名 :" in m[:120]
 
 
-def donut_svg(total: int, miss: int, size: int = 220, stroke: int = 18,
-              miss_color: str = "#0d6e5c", hit_color: str = "#e5e0d6",
-              center_label: str = "") -> str:
+def donut_svg(total: int, miss: int, size: int = 240, stroke: int = 16) -> str:
+    """グラデーションストロークのモダンなドーナツチャート。"""
     if total <= 0:
         return ""
     cx = cy = size / 2
@@ -61,14 +60,22 @@ def donut_svg(total: int, miss: int, size: int = 220, stroke: int = 18,
     hit_len = c - miss_len
     pct_text = f"{int(round(miss_pct * 100))}%"
     return f"""
-    <svg viewBox="0 0 {size} {size}" width="{size}" height="{size}" role="img" aria-label="{html.escape(center_label)}">
-      <circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{hit_color}" stroke-width="{stroke}"/>
-      <circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{miss_color}" stroke-width="{stroke}"
-              stroke-linecap="butt"
+    <svg viewBox="0 0 {size} {size}" width="{size}" height="{size}" role="img">
+      <defs>
+        <linearGradient id="donutGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#6366f1"/>
+          <stop offset="100%" stop-color="#a855f7"/>
+        </linearGradient>
+      </defs>
+      <circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#f1f5f9" stroke-width="{stroke}"/>
+      <circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="url(#donutGrad)" stroke-width="{stroke}"
+              stroke-linecap="round"
               stroke-dasharray="{miss_len:.2f} {hit_len:.2f}"
               stroke-dashoffset="{c/4:.2f}" transform="rotate(-90 {cx} {cy})"/>
-      <text x="{cx}" y="{cy - 4}" text-anchor="middle" font-size="44" font-weight="600" fill="#0b1730" font-family="'Inter', 'Noto Sans JP', sans-serif" letter-spacing="-0.02em">{pct_text}</text>
-      <text x="{cx}" y="{cy + 24}" text-anchor="middle" font-size="11" fill="#5a6478" font-family="'Inter', sans-serif" letter-spacing="0.18em">UNTAPPED</text>
+      <text x="{cx}" y="{cy + 4}" text-anchor="middle" font-size="48" font-weight="700"
+            fill="#0a0a0a" font-family="'Inter', sans-serif" letter-spacing="-0.04em">{pct_text}</text>
+      <text x="{cx}" y="{cy + 30}" text-anchor="middle" font-size="11" fill="#737373"
+            font-family="'Inter', sans-serif" letter-spacing="0.18em" font-weight="500">UNTAPPED</text>
     </svg>
     """
 
@@ -82,345 +89,424 @@ HTML_HEAD = """<!doctype html>
 <meta name="description" content="他媒体に出稿中で求人ボックスに未出稿の企業を抽出し、個別営業文章まで自動生成するパイプラインの実証結果。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #fbfaf6;
+    --bg: #fafafa;
     --paper: #ffffff;
-    --ink: #0b1730;
-    --ink-2: #2b3550;
-    --muted: #6a7388;
-    --hairline: #ece8de;
-    --line: rgba(11, 23, 48, .08);
-    --accent: #0d6e5c;
-    --accent-deep: #084c40;
-    --accent-soft: #e0efe9;
-    --gold: #a87a30;
+    --ink: #0a0a0a;
+    --ink-2: #404040;
+    --ink-3: #525252;
+    --muted: #737373;
+    --line: #e5e5e5;
+    --line-soft: #f1f5f9;
+    --accent: #6366f1;
+    --accent-2: #8b5cf6;
+    --accent-3: #a855f7;
+    --accent-soft: #eef2ff;
+    --accent-soft-2: #f5f3ff;
+    --success: #10b981;
+    --success-soft: #d1fae5;
+    --grad: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+    --grad-soft: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 50%, #faf5ff 100%);
+    --shadow-sm: 0 1px 2px rgba(10, 10, 10, .04);
+    --shadow: 0 1px 3px rgba(10, 10, 10, .05), 0 8px 24px rgba(10, 10, 10, .04);
+    --shadow-lg: 0 4px 12px rgba(10, 10, 10, .06), 0 20px 48px rgba(99, 102, 241, .12);
   }
   * { box-sizing: border-box; }
   html { -webkit-font-smoothing: antialiased; }
   html, body { margin: 0; padding: 0; }
   body {
-    font-family: 'Noto Sans JP', 'Inter', -apple-system, "Hiragino Kaku Gothic ProN", system-ui, sans-serif;
+    font-family: 'Inter', 'Plus Jakarta Sans', 'Noto Sans JP', -apple-system, system-ui, sans-serif;
     background: var(--bg);
     color: var(--ink);
-    line-height: 1.85;
+    line-height: 1.7;
     font-size: 15px;
     font-weight: 400;
-    letter-spacing: 0.01em;
+    letter-spacing: -0.005em;
   }
-  /* paper texture */
+
+  /* グラデーションオーブ（背景ぼかし） */
   body::before {
     content: "";
-    position: fixed; inset: 0;
-    background-image:
-      radial-gradient(rgba(11,23,48,.018) 1px, transparent 1px);
-    background-size: 6px 6px;
+    position: fixed;
+    top: -200px; right: -200px;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(99, 102, 241, .12) 0%, transparent 70%);
+    filter: blur(60px);
     pointer-events: none;
     z-index: 0;
   }
+  body::after {
+    content: "";
+    position: fixed;
+    bottom: -300px; left: -200px;
+    width: 800px; height: 800px;
+    background: radial-gradient(circle, rgba(168, 85, 247, .08) 0%, transparent 70%);
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
   .container {
     position: relative;
     z-index: 1;
-    max-width: 980px;
+    max-width: 1120px;
     margin: 0 auto;
-    padding: 80px 32px 96px;
+    padding: 64px 32px 96px;
   }
 
-  /* HEADER */
-  .doc-header {
+  /* HERO */
+  .hero {
     margin-bottom: 96px;
   }
-  .doc-eyebrow {
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    border: 1px solid rgba(99, 102, 241, .2);
+  }
+  .badge::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, .2);
+  }
+  .hero-title {
+    font-family: 'Plus Jakarta Sans', 'Inter', 'Noto Sans JP', sans-serif;
+    font-weight: 800;
+    font-size: 48px;
+    line-height: 1.15;
+    letter-spacing: -0.035em;
+    margin: 0 0 24px;
+    color: var(--ink);
+  }
+  .hero-title .grad {
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .hero-lead {
+    font-size: 17px;
+    color: var(--ink-2);
+    line-height: 1.75;
+    max-width: 760px;
+    margin: 0 0 40px;
+    font-weight: 400;
+  }
+  .meta-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    padding: 24px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+  .meta-item { padding: 0 4px; }
+  .meta-label {
     font-family: 'Inter', sans-serif;
     font-size: 11px;
-    letter-spacing: .32em;
-    text-transform: uppercase;
-    color: var(--accent);
-    font-weight: 600;
-    margin-bottom: 28px;
-  }
-  .doc-eyebrow::before {
-    content: "";
-    display: inline-block;
-    width: 28px; height: 1px;
-    background: var(--accent);
-    vertical-align: middle;
-    margin-right: 12px;
-  }
-  .doc-title {
-    font-family: 'Noto Serif JP', serif;
-    font-weight: 700;
-    font-size: 40px;
-    line-height: 1.45;
-    color: var(--ink);
-    margin: 0 0 20px;
-    letter-spacing: -0.005em;
-  }
-  .doc-lead {
-    font-size: 16px;
-    color: var(--ink-2);
-    line-height: 1.95;
-    max-width: 720px;
-    margin: 0 0 40px;
-  }
-  .doc-meta {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0;
-    border-top: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
-    padding: 22px 0;
-  }
-  .doc-meta-item {
-    padding: 0 28px;
-    border-right: 1px solid var(--line);
-  }
-  .doc-meta-item:first-child { padding-left: 0; }
-  .doc-meta-item:last-child { border-right: none; padding-right: 0; }
-  .doc-meta-label {
-    font-family: 'Inter', sans-serif;
-    font-size: 10px;
-    letter-spacing: .22em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
+    font-weight: 600;
     margin-bottom: 6px;
   }
-  .doc-meta-value {
-    font-size: 14px;
+  .meta-value {
+    font-size: 15px;
     color: var(--ink);
-    font-weight: 500;
+    font-weight: 600;
   }
 
-  /* SECTIONS */
+  /* SECTION */
   section {
     margin-bottom: 88px;
     scroll-margin-top: 32px;
   }
-  .section-marker {
+  .section-tag {
+    display: inline-block;
     font-family: 'Inter', sans-serif;
-    font-size: 11px;
-    letter-spacing: .28em;
-    text-transform: uppercase;
-    color: var(--gold);
+    font-size: 11.5px;
     font-weight: 600;
-    margin-bottom: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 4px 12px;
+    background: var(--accent-soft);
+    border-radius: 6px;
+    margin-bottom: 18px;
   }
   .section-title {
-    font-family: 'Noto Serif JP', serif;
-    font-size: 28px;
-    line-height: 1.5;
+    font-family: 'Plus Jakarta Sans', 'Inter', 'Noto Sans JP', sans-serif;
+    font-size: 32px;
+    line-height: 1.3;
     margin: 0 0 14px;
+    color: var(--ink);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    max-width: 880px;
+  }
+  .section-lead {
+    font-size: 15.5px;
+    color: var(--ink-3);
+    line-height: 1.75;
+    max-width: 780px;
+    margin: 0 0 40px;
+  }
+
+  /* HEADLINE KPI */
+  .kpi-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 48px 48px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: "";
+    position: absolute;
+    top: -2px; left: 0; right: 0;
+    height: 3px;
+    background: var(--grad);
+    border-radius: 24px 24px 0 0;
+  }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: minmax(280px, auto) 1fr;
+    gap: 56px;
+    align-items: center;
+  }
+  .kpi-figure {
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 120px;
+    line-height: 0.95;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    letter-spacing: -0.06em;
+    display: flex;
+    align-items: baseline;
+  }
+  .kpi-figure .unit {
+    font-size: 40px;
+    margin-left: 4px;
+    -webkit-text-fill-color: transparent;
+  }
+  .kpi-body h3 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 20px;
+    margin: 0 0 8px;
     color: var(--ink);
     font-weight: 700;
     letter-spacing: -0.01em;
   }
-  .section-lead {
-    font-size: 15px;
-    color: var(--ink-2);
-    line-height: 1.95;
-    max-width: 720px;
-    margin: 0 0 36px;
-  }
-  .section-divider {
-    width: 32px;
-    height: 1px;
-    background: var(--ink);
-    opacity: .25;
-    margin: 0 0 28px;
-  }
-
-  /* HEADLINE METRIC */
-  .headline {
-    display: grid;
-    grid-template-columns: minmax(280px, 1fr) auto;
-    gap: 40px;
-    align-items: center;
-    padding: 36px 40px;
-    background: var(--paper);
-    border: 1px solid var(--hairline);
-    border-radius: 4px;
-    box-shadow: 0 1px 2px rgba(11, 23, 48, .04);
-  }
-  .headline-figure {
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 96px;
-    line-height: 1;
-    color: var(--accent);
-    letter-spacing: -0.04em;
-    display: flex;
-    align-items: baseline;
-  }
-  .headline-figure .unit {
-    font-size: 32px;
-    font-weight: 500;
-    color: var(--ink-2);
-    margin-left: 8px;
-  }
-  .headline-body h3 {
-    font-family: 'Noto Serif JP', serif;
-    font-size: 18px;
-    margin: 0 0 6px;
-    color: var(--ink);
-    font-weight: 700;
-  }
-  .headline-body p {
+  .kpi-body p {
     margin: 0;
-    color: var(--ink-2);
-    font-size: 14px;
-    line-height: 1.85;
+    color: var(--ink-3);
+    font-size: 15px;
+    line-height: 1.7;
   }
 
-  .submetrics {
+  .stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0;
-    margin: 32px 0 0;
-    border-top: 1px solid var(--line);
+    gap: 14px;
+    margin-top: 32px;
   }
-  .submetric {
-    padding: 20px 28px 20px 0;
-    border-right: 1px solid var(--line);
+  .stat {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px 22px;
+    transition: border-color .2s, box-shadow .2s;
   }
-  .submetric:last-child { border-right: none; padding-right: 0; }
-  .submetric-label {
+  .stat:hover {
+    border-color: rgba(99, 102, 241, .3);
+    box-shadow: var(--shadow);
+  }
+  .stat-label {
     font-family: 'Inter', sans-serif;
-    font-size: 10px;
-    letter-spacing: .22em;
+    font-size: 11px;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 8px;
-  }
-  .submetric-value {
-    font-family: 'Inter', sans-serif;
     font-weight: 600;
-    font-size: 28px;
-    color: var(--ink);
-    letter-spacing: -0.02em;
+    margin-bottom: 10px;
   }
-  .submetric-value .unit {
-    font-size: 14px;
+  .stat-value {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 30px;
+    color: var(--ink);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+  .stat-value .unit {
+    font-size: 15px;
     color: var(--ink-2);
+    font-weight: 600;
     margin-left: 4px;
-    font-weight: 500;
   }
 
   /* CALLOUT */
   .callout {
-    border-left: 2px solid var(--accent);
-    padding: 4px 0 4px 22px;
-    margin: 32px 0 0;
+    margin-top: 24px;
+    padding: 20px 24px;
+    background: var(--grad-soft);
+    border: 1px solid rgba(99, 102, 241, .15);
+    border-radius: 14px;
     color: var(--ink-2);
     font-size: 14.5px;
-    line-height: 1.95;
+    line-height: 1.75;
   }
   .callout strong { color: var(--ink); font-weight: 700; }
 
-  /* ACCURACY TABLE (Phase A) */
-  .acc-table {
+  /* INDICATOR TABLE */
+  .ind-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 0 0 28px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
   }
-  .acc-table th {
+  .ind-table th {
     text-align: left;
-    padding: 14px 0;
+    padding: 14px 24px;
     font-family: 'Inter', sans-serif;
-    font-size: 10px;
-    letter-spacing: .22em;
+    font-size: 11px;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
     font-weight: 600;
-    border-bottom: 1px solid var(--ink);
+    background: #fafafa;
+    border-bottom: 1px solid var(--line);
   }
-  .acc-table td {
-    padding: 16px 0;
+  .ind-table td {
+    padding: 18px 24px;
     border-bottom: 1px solid var(--line);
     vertical-align: middle;
-    font-size: 14px;
+    font-size: 14.5px;
+    color: var(--ink-2);
   }
-  .acc-table .col-label { width: 40%; }
-  .acc-table .col-value {
+  .ind-table tr:last-child td { border-bottom: none; }
+  .ind-table .col-label { width: 40%; color: var(--ink); font-weight: 500; }
+  .ind-table .col-value {
     text-align: right;
-    width: 80px;
+    width: 90px;
     font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 16px;
+    font-weight: 700;
+    font-size: 18px;
     color: var(--ink);
+    letter-spacing: -0.02em;
   }
-  .acc-table .col-bar { padding-left: 24px; }
+  .ind-table .col-bar { padding-left: 32px; padding-right: 32px; }
   .bar {
     position: relative;
-    height: 6px;
-    background: var(--hairline);
-    border-radius: 3px;
+    height: 8px;
+    background: var(--line-soft);
+    border-radius: 999px;
     overflow: hidden;
   }
   .bar-fill {
     position: absolute;
     inset: 0 auto 0 0;
-    background: var(--accent);
-    border-radius: 3px;
+    background: var(--grad);
+    border-radius: 999px;
   }
 
-  /* COMPANY LIST TABLE */
+  /* COMPANY LIST */
   .lead-list {
     width: 100%;
     border-collapse: collapse;
     background: var(--paper);
-    border: 1px solid var(--hairline);
-    border-radius: 4px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
     overflow: hidden;
+    box-shadow: var(--shadow-sm);
   }
   .lead-list thead th {
-    background: #fafaf6;
+    background: #fafafa;
     text-align: left;
-    padding: 14px 18px;
+    padding: 14px 20px;
     font-family: 'Inter', sans-serif;
-    font-size: 10px;
-    letter-spacing: .22em;
+    font-size: 11px;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
     font-weight: 600;
-    border-bottom: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--line);
   }
   .lead-list tbody td {
-    padding: 14px 18px;
+    padding: 16px 20px;
     border-bottom: 1px solid var(--line);
     vertical-align: top;
-    font-size: 13.5px;
-    line-height: 1.7;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--ink-2);
   }
   .lead-list tbody tr:last-child td { border-bottom: none; }
-  .lead-list tbody tr:hover td { background: #faf8f0; }
+  .lead-list tbody tr { transition: background .15s; }
+  .lead-list tbody tr:hover { background: var(--accent-soft-2); }
   .lead-list .col-idx {
-    width: 38px;
+    width: 44px;
     color: var(--muted);
     font-family: 'Inter', sans-serif;
     font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 12px;
   }
   .lead-list .col-name {
     font-weight: 600;
     color: var(--ink);
     min-width: 200px;
   }
-  .lead-list .col-detail { color: var(--ink-2); max-width: 360px; }
-  .lead-list .col-link { white-space: nowrap; min-width: 120px; }
+  .lead-list .col-detail { color: var(--ink-2); max-width: 380px; }
+  .lead-list .col-link { white-space: nowrap; min-width: 140px; text-align: right; }
 
-  a.btn-text {
-    display: inline-block;
-    padding: 4px 0;
+  /* BUTTONS / LINKS */
+  a.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: var(--accent-soft);
     color: var(--accent);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
     text-decoration: none;
-    font-size: 12.5px;
-    border-bottom: 1px solid currentColor;
-    margin-right: 16px;
-    font-weight: 500;
+    transition: background .15s, color .15s;
+    margin-left: 4px;
   }
-  a.btn-text:hover { color: var(--accent-deep); }
-  a.btn-text.muted { color: var(--muted); }
-  a.btn-text.muted:hover { color: var(--ink); }
+  a.btn:hover { background: var(--accent); color: white; }
+  a.btn.ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line);
+  }
+  a.btn.ghost:hover { background: #f5f5f5; color: var(--ink); border-color: var(--ink); }
+  a.btn::after { content: "→"; font-size: 11px; opacity: .7; }
 
   /* DONUT BLOCK */
   .donut-block {
@@ -428,77 +514,119 @@ HTML_HEAD = """<!doctype html>
     grid-template-columns: auto 1fr;
     gap: 56px;
     align-items: center;
-    padding: 32px 40px;
+    padding: 48px;
     background: var(--paper);
-    border: 1px solid var(--hairline);
-    border-radius: 4px;
-    margin-bottom: 36px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    margin-bottom: 40px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .donut-block::before {
+    content: "";
+    position: absolute;
+    top: 0; right: 0;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(168, 85, 247, .06) 0%, transparent 70%);
+    pointer-events: none;
   }
   .donut-legend {
     display: grid;
-    gap: 18px;
+    gap: 0;
+    position: relative;
   }
   .donut-legend-item {
     display: grid;
-    grid-template-columns: 8px 1fr auto;
-    gap: 14px;
+    grid-template-columns: auto 1fr auto;
+    gap: 18px;
     align-items: center;
-    padding-bottom: 14px;
+    padding: 18px 0;
     border-bottom: 1px solid var(--line);
   }
-  .donut-legend-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .donut-legend-item:last-child { border-bottom: none; }
   .donut-legend-marker {
-    width: 8px; height: 32px;
-    border-radius: 1px;
+    width: 10px; height: 10px;
+    border-radius: 3px;
   }
+  .donut-legend-marker.miss { background: var(--grad); }
+  .donut-legend-marker.hit { background: var(--line); border: 1px solid #d4d4d4; }
   .donut-legend-label {
     color: var(--ink-2);
-    font-size: 13.5px;
+    font-size: 14px;
+    line-height: 1.6;
   }
-  .donut-legend-label strong { color: var(--ink); }
+  .donut-legend-label strong { color: var(--ink); font-weight: 700; }
   .donut-legend-value {
     font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 22px;
+    font-weight: 700;
+    font-size: 28px;
     color: var(--ink);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* SECTION HEADING (subsection) */
+  .h3-modern {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 48px 0 18px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .h3-modern::before {
+    content: "";
+    display: block;
+    width: 4px;
+    height: 18px;
+    background: var(--grad);
+    border-radius: 2px;
   }
 
   /* MESSAGE CARD */
   .msg-card {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
     padding: 28px 32px;
     background: var(--paper);
-    border: 1px solid var(--hairline);
-    border-radius: 4px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .msg-card:hover {
+    border-color: rgba(99, 102, 241, .25);
+    box-shadow: var(--shadow);
   }
   .msg-card-header {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     gap: 12px;
-    margin-bottom: 14px;
-    padding-bottom: 14px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
     border-bottom: 1px solid var(--line);
-    font-size: 12px;
-    color: var(--muted);
   }
   .msg-card-header .co {
-    font-family: 'Noto Serif JP', serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 700;
     color: var(--ink);
     font-size: 16px;
+    letter-spacing: -0.01em;
   }
-  .msg-card-header .ctx { color: var(--ink-2); font-size: 13px; }
+  .msg-card-header .ctx { color: var(--muted); font-size: 13px; }
+  .msg-card-header .links { margin-left: auto; }
   .msg-body {
     margin: 0;
     font-family: 'Noto Sans JP', sans-serif;
     font-size: 14px;
     line-height: 2.0;
-    color: var(--ink);
+    color: var(--ink-2);
     white-space: pre-wrap;
     word-break: break-word;
+    letter-spacing: 0.005em;
   }
 
   /* FOOTER */
@@ -507,30 +635,29 @@ HTML_HEAD = """<!doctype html>
     font-size: 12px;
     text-align: center;
     padding-top: 64px;
+    margin-top: 64px;
     border-top: 1px solid var(--line);
     letter-spacing: 0.04em;
   }
 
   /* RESPONSIVE */
   @media (max-width: 720px) {
-    .container { padding: 48px 20px 64px; }
-    .doc-title { font-size: 28px; }
-    .doc-meta { grid-template-columns: 1fr; padding: 0; border-bottom: none; }
-    .doc-meta-item {
-      padding: 18px 0;
-      border-right: none;
-      border-bottom: 1px solid var(--line);
-    }
-    .doc-meta-item:last-child { border-bottom: none; }
-    section { margin-bottom: 64px; }
-    .section-title { font-size: 22px; }
-    .headline { grid-template-columns: 1fr; gap: 24px; padding: 28px 24px; }
-    .headline-figure { font-size: 72px; }
-    .donut-block { grid-template-columns: 1fr; gap: 32px; padding: 28px 24px; justify-items: center; }
+    .container { padding: 40px 18px 64px; }
+    .hero-title { font-size: 30px; }
+    .hero-lead { font-size: 15px; }
+    .section-title { font-size: 24px; }
+    .kpi-card { padding: 32px 24px; }
+    .kpi-grid { grid-template-columns: 1fr; gap: 28px; }
+    .kpi-figure { font-size: 84px; }
+    .donut-block { grid-template-columns: 1fr; gap: 32px; padding: 32px 24px; justify-items: center; }
     .donut-block svg { max-width: 200px; height: auto; }
-    .submetric, .doc-meta-item { padding-right: 0; border-right: none; }
+    .meta-bar { padding: 18px; }
+    .ind-table th, .ind-table td { padding: 12px 16px; }
+    .ind-table .col-bar { padding-left: 16px; padding-right: 16px; }
     .lead-list .col-detail { display: none; }
     .lead-list thead th, .lead-list tbody td { padding: 12px 14px; }
+    .msg-card { padding: 22px 20px; }
+    .msg-card-header .links { margin-left: 0; width: 100%; }
   }
 </style>
 </head>
@@ -572,7 +699,6 @@ def render_index() -> str:
     today_iso = datetime.datetime.now().strftime("%Y-%m-%d")
     p1 = PHASE1_NUMBERS
 
-    # Phase B レコード行
     leads_rows = []
     for i, r in enumerate(miss_sorted, 1):
         co = html.escape(r.get("company_name", ""))
@@ -587,12 +713,11 @@ def render_index() -> str:
           <td class="col-name">{co}</td>
           <td class="col-detail">{jt}</td>
           <td class="col-link">
-            <a class="btn-text" href="{src}" target="_blank" rel="noopener">Wantedly</a>
-            <a class="btn-text muted" href="{kbox}" target="_blank" rel="noopener">求人ボックス</a>
+            <a class="btn" href="{src}" target="_blank" rel="noopener">Wantedly</a>
+            <a class="btn ghost" href="{kbox}" target="_blank" rel="noopener">求人ボックス</a>
           </td>
         </tr>""")
 
-    # Phase A 製造業 5 社
     phase_a_rows = []
     for i, r in enumerate(phase_a_results, 1):
         co = html.escape(r.get("company_name", ""))
@@ -604,8 +729,8 @@ def render_index() -> str:
         addr = html.escape((r.get("address") or "—").strip())
         kb = r.get("kyujinbox_company_url") or r.get("source_url") or ""
         site = (r.get("company_website") or "").strip()
-        kb_link = f'<a class="btn-text" href="{html.escape(kb)}" target="_blank" rel="noopener">求人ボックス</a>' if kb else ""
-        site_link = f'<a class="btn-text muted" href="{html.escape(site)}" target="_blank" rel="noopener">公式サイト</a>' if site else ""
+        kb_link = f'<a class="btn" href="{html.escape(kb)}" target="_blank" rel="noopener">求人ボックス</a>' if kb else ""
+        site_link = f'<a class="btn ghost" href="{html.escape(site)}" target="_blank" rel="noopener">公式サイト</a>' if site else ""
         phase_a_rows.append(f"""<tr>
           <td class="col-idx">{i:02d}</td>
           <td class="col-name">{co}</td>
@@ -619,12 +744,11 @@ def render_index() -> str:
     if phase_a_rows:
         phase_a_section = f"""
 <section>
-  <div class="section-marker">Phase A</div>
+  <span class="section-tag">Phase A</span>
   <h2 class="section-title">求人ボックスから直接、人材紹介・派遣会社を抽出</h2>
-  <div class="section-divider"></div>
   <p class="section-lead">求人ボックスで「人材紹介 製造」を検索し、求人内容から事業者の業態を読み取って人材紹介・派遣会社のみを抽出。さらに厚労省の事業者公開データと突合して、許可番号・所在地・電話番号を補完しました。</p>
 
-  <table class="acc-table">
+  <table class="ind-table">
     <thead>
       <tr><th class="col-label">指標</th><th>結果</th><th class="col-bar"></th></tr>
     </thead>
@@ -652,7 +776,7 @@ def render_index() -> str:
     </tbody>
   </table>
 
-  <h3 style="font-family:'Noto Serif JP',serif; font-size:18px; font-weight:700; margin:36px 0 16px;">抽出された 5 社</h3>
+  <h3 class="h3-modern">抽出された 5 社</h3>
   <table class="lead-list">
     <thead>
       <tr>
@@ -684,94 +808,91 @@ def render_index() -> str:
           <p class="msg-body">{msg}</p>
         </div>""")
 
-    donut = donut_svg(n_total, n_missing, size=220, stroke=18,
-                      miss_color="#0d6e5c", hit_color="#e5e0d6",
-                      center_label=f"未出稿率 {rate_missing}%")
+    donut = donut_svg(n_total, n_missing, size=240, stroke=16)
 
     out = HTML_HEAD + f"""<body>
 <div class="container">
 
-<header class="doc-header">
-  <div class="doc-eyebrow">PROOF OF CONCEPT REPORT</div>
-  <h1 class="doc-title">求人ボックス 直接アプローチ実証レポート<br>— 抽出から個別営業文章まで自動化が成立しました</h1>
-  <p class="doc-lead">5/7 のお打ち合わせで合意した「他媒体に出ている企業のうち、求人ボックスにまだ出稿していない企業を狙って、直接お声がけする」という方針。本書は、その全工程をスクリプトで自動化し、Wantedly 100 社で実測した結果のご報告です。</p>
-  <div class="doc-meta">
-    <div class="doc-meta-item">
-      <div class="doc-meta-label">Submitted To</div>
-      <div class="doc-meta-value">株式会社UPDRAFT　高屋 裕司 様</div>
+<header class="hero">
+  <div class="badge">Proof of Concept Report</div>
+  <h1 class="hero-title">Wantedly に出ている企業の <span class="grad">{rate_missing}%</span> は<br>求人ボックスにまだ出稿していない。</h1>
+  <p class="hero-lead">5/7 のお打ち合わせで合意した「他媒体に出ている企業のうち、求人ボックスにまだ出稿していない企業を狙って、直接お声がけする」という方針。本書は、その全工程をスクリプトで自動化し、Wantedly 100 社で実測した結果のご報告です。</p>
+  <div class="meta-bar">
+    <div class="meta-item">
+      <div class="meta-label">Submitted To</div>
+      <div class="meta-value">株式会社UPDRAFT　高屋 裕司 様</div>
     </div>
-    <div class="doc-meta-item">
-      <div class="doc-meta-label">Report Date</div>
-      <div class="doc-meta-value">{today}</div>
+    <div class="meta-item">
+      <div class="meta-label">Report Date</div>
+      <div class="meta-value">{today}</div>
     </div>
-    <div class="doc-meta-item">
-      <div class="doc-meta-label">Scope</div>
-      <div class="doc-meta-value">求人ボックス × 厚労省 × Wantedly</div>
+    <div class="meta-item">
+      <div class="meta-label">Scope</div>
+      <div class="meta-value">求人ボックス × 厚労省 × Wantedly</div>
     </div>
   </div>
 </header>
 
 <section>
-  <div class="section-marker">01 — Executive Summary</div>
-  <h2 class="section-title">Wantedly に出ている企業の {rate_missing}% は、求人ボックスにまだ出稿していない</h2>
-  <div class="section-divider"></div>
-  <p class="section-lead">同じ採用ニーズを持ちながら、求人ボックスをまだ使っていない企業が大量に存在することが裏付けられました。代理店としての切り替え・併用の提案余地が広く、想定（35%）を大きく上回るリード率です。</p>
+  <span class="section-tag">01 — Executive Summary</span>
+  <h2 class="section-title">同じ採用ニーズを持ちながら、求人ボックスをまだ使っていない企業が大量に存在する</h2>
+  <p class="section-lead">代理店としての切り替え・併用提案の余地が広いことを示す結果が出ました。想定（35%）を大きく上回るリード率です。</p>
 
-  <div class="headline">
-    <div class="headline-figure">{rate_missing}<span class="unit">%</span></div>
-    <div class="headline-body">
-      <h3>求人ボックス未出稿率（Wantedly 100 社調査）</h3>
-      <p>調査総数 100 社のうち、求人ボックスに掲載が確認できなかった企業の比率です。リード候補は {n_missing} 社、すべて Wantedly では現役で求人募集中の企業です。</p>
+  <div class="kpi-card">
+    <div class="kpi-grid">
+      <div class="kpi-figure">{rate_missing}<span class="unit">%</span></div>
+      <div class="kpi-body">
+        <h3>求人ボックス未出稿率（Wantedly 100 社調査）</h3>
+        <p>調査総数 100 社のうち、求人ボックスに掲載が確認できなかった企業の比率です。<br>リード候補は <strong style="color:var(--ink);font-weight:700;">{n_missing} 社</strong>、すべて Wantedly では現役で求人募集中の企業です。</p>
+      </div>
     </div>
-  </div>
-
-  <div class="submetrics">
-    <div class="submetric">
-      <div class="submetric-label">Lead Candidates</div>
-      <div class="submetric-value">{n_missing}<span class="unit">社</span></div>
-    </div>
-    <div class="submetric">
-      <div class="submetric-label">Outreach Drafts</div>
-      <div class="submetric-value">{len(msgs)}<span class="unit">通</span></div>
-    </div>
-    <div class="submetric">
-      <div class="submetric-label">Sendable Quality</div>
-      <div class="submetric-value">{len(valid_msgs)}<span class="unit">通</span></div>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Lead Candidates</div>
+        <div class="stat-value">{n_missing}<span class="unit">社</span></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Outreach Drafts</div>
+        <div class="stat-value">{len(msgs)}<span class="unit">通</span></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Sendable Quality</div>
+        <div class="stat-value">{len(valid_msgs)}<span class="unit">通</span></div>
+      </div>
     </div>
   </div>
 </section>
 {phase_a_section}
 
 <section>
-  <div class="section-marker">Phase B</div>
+  <span class="section-tag">Phase B</span>
   <h2 class="section-title">他媒体（Wantedly）から、求人ボックス未出稿のリードを抽出</h2>
-  <div class="section-divider"></div>
   <p class="section-lead">Wantedly に求人を出している企業 100 社を対象に、求人ボックスでの掲載状況を 1 社ずつ照合しました。会社名のゆらぎ（全角・半角、株式会社の表記揺れなど）を吸収して判定しています。</p>
 
   <div class="donut-block">
     {donut}
     <div class="donut-legend">
       <div class="donut-legend-item">
-        <div class="donut-legend-marker" style="background:#0d6e5c"></div>
+        <div class="donut-legend-marker miss"></div>
         <div class="donut-legend-label"><strong>未出稿</strong>（求人ボックスへの掲載が確認できない）<br>= リード候補</div>
         <div class="donut-legend-value">{n_missing}</div>
       </div>
       <div class="donut-legend-item">
-        <div class="donut-legend-marker" style="background:#e5e0d6"></div>
+        <div class="donut-legend-marker hit"></div>
         <div class="donut-legend-label">出稿あり<br>（既に求人ボックスに掲載中）</div>
         <div class="donut-legend-value">{n_exists}</div>
       </div>
       <div class="donut-legend-item">
-        <div class="donut-legend-marker" style="background:transparent"></div>
+        <div class="donut-legend-marker" style="opacity:0;"></div>
         <div class="donut-legend-label">調査総数</div>
         <div class="donut-legend-value">{n_total}</div>
       </div>
     </div>
   </div>
 
-  <h3 style="font-family:'Noto Serif JP',serif; font-size:18px; font-weight:700; margin:36px 0 16px;">リード候補 — 未出稿の {len(miss_targets)} 社一覧</h3>
-  <p class="section-lead" style="margin-bottom:20px;">Wantedly では現役で求人を出しているのに、求人ボックスには掲載がない企業です。求人ボックス代理店としての切り替え・追加掲載提案が成立しやすい母集団です。</p>
-  <div style="overflow:auto; max-height:560px; border:1px solid var(--hairline); border-radius:4px;">
+  <h3 class="h3-modern">リード候補 — 未出稿の {len(miss_targets)} 社一覧</h3>
+  <p class="section-lead" style="margin-bottom:24px;">Wantedly では現役で求人を出しているのに、求人ボックスには掲載がない企業です。代理店としての切り替え・追加掲載提案が成立しやすい母集団です。</p>
+  <div style="overflow:auto; max-height:600px; border-radius:16px;">
     <table class="lead-list">
       <thead>
         <tr>
@@ -789,30 +910,29 @@ def render_index() -> str:
 </section>
 
 <section>
-  <div class="section-marker">Phase C</div>
+  <span class="section-tag">Phase C</span>
   <h2 class="section-title">リード企業ごとに、個別の営業文章を自動生成</h2>
-  <div class="section-divider"></div>
   <p class="section-lead">テンプレートの一斉送信ではありません。リード各社の事業内容を読み取って、件名と本文を 1 社ずつ書き分けた状態でアウトプットしました。同じ営業文章は 1 通もありません。</p>
 
-  <div class="submetrics">
-    <div class="submetric">
-      <div class="submetric-label">Generated</div>
-      <div class="submetric-value">{len(msgs)}<span class="unit">通</span></div>
+  <div class="stats" style="margin-top:0; margin-bottom:24px;">
+    <div class="stat">
+      <div class="stat-label">Generated</div>
+      <div class="stat-value">{len(msgs)}<span class="unit">通</span></div>
     </div>
-    <div class="submetric">
-      <div class="submetric-label">Sendable Quality</div>
-      <div class="submetric-value">{len(valid_msgs)}<span class="unit">通</span></div>
+    <div class="stat">
+      <div class="stat-label">Sendable Quality</div>
+      <div class="stat-value">{len(valid_msgs)}<span class="unit">通</span></div>
     </div>
-    <div class="submetric">
-      <div class="submetric-label">Personalisation</div>
-      <div class="submetric-value">100<span class="unit">%</span></div>
+    <div class="stat">
+      <div class="stat-label">Personalisation</div>
+      <div class="stat-value">100<span class="unit">%</span></div>
     </div>
   </div>
 
-  <h3 style="font-family:'Noto Serif JP',serif; font-size:18px; font-weight:700; margin:44px 0 18px;">サンプル抜粋（3 通）</h3>
+  <h3 class="h3-modern">サンプル抜粋（3 通）</h3>
   {''.join(samples_html) if samples_html else '<p class="section-lead">サンプル取得待ち。</p>'}
 
-  <p class="section-lead" style="margin-top:24px;">全 {len(msgs)} 通の文面は <a class="btn-text" href="messages.html">こちらの全文ページ</a> でご確認いただけます。</p>
+  <p class="section-lead" style="margin-top:24px;">全 {len(msgs)} 通の文面は <a class="btn" href="messages.html">全文ページ</a> でご確認いただけます。</p>
 </section>
 
 <footer>
@@ -839,9 +959,9 @@ def render_messages(msgs: list[dict]) -> str:
           <div class="msg-card-header">
             <span class="co">#{i:02d}　{co}</span>
             <span class="ctx">／ Wantedly：{jt}</span>
-            <span class="ctx" style="margin-left:auto;">
-              <a class="btn-text" href="{wantedly_url}" target="_blank" rel="noopener">Wantedly</a>
-              <a class="btn-text muted" href="{kbox_url}" target="_blank" rel="noopener">求人ボックス</a>
+            <span class="links">
+              <a class="btn" href="{wantedly_url}" target="_blank" rel="noopener">Wantedly</a>
+              <a class="btn ghost" href="{kbox_url}" target="_blank" rel="noopener">求人ボックス</a>
             </span>
           </div>
           <p class="msg-body">{msg}</p>
@@ -850,22 +970,22 @@ def render_messages(msgs: list[dict]) -> str:
     return HTML_HEAD + f"""<body>
 <div class="container">
 
-<header class="doc-header">
-  <div class="doc-eyebrow">APPENDIX — OUTREACH MESSAGES</div>
-  <h1 class="doc-title">リード候補 全 {len(msgs)} 社向け<br>個別営業文章の全文</h1>
-  <p class="doc-lead">サマリレポートに記載のリード候補（Wantedly に出稿中・求人ボックス未出稿）に対して、それぞれの事業内容を踏まえて作成した件名 + 本文です。</p>
-  <div class="doc-meta">
-    <div class="doc-meta-item">
-      <div class="doc-meta-label">Report Date</div>
-      <div class="doc-meta-value">{today_iso}</div>
+<header class="hero">
+  <div class="badge">Appendix · Outreach Messages</div>
+  <h1 class="hero-title">リード候補 全 <span class="grad">{len(msgs)}</span> 社向け<br>個別営業文章の全文。</h1>
+  <p class="hero-lead">サマリレポートに記載のリード候補（Wantedly に出稿中・求人ボックス未出稿）に対して、それぞれの事業内容を踏まえて作成した件名 + 本文です。</p>
+  <div class="meta-bar">
+    <div class="meta-item">
+      <div class="meta-label">Report Date</div>
+      <div class="meta-value">{today_iso}</div>
     </div>
-    <div class="doc-meta-item">
-      <div class="doc-meta-label">Total</div>
-      <div class="doc-meta-value">{len(msgs)} 通</div>
+    <div class="meta-item">
+      <div class="meta-label">Total</div>
+      <div class="meta-value">{len(msgs)} 通</div>
     </div>
-    <div class="doc-meta-item">
-      <div class="doc-meta-label">Back</div>
-      <div class="doc-meta-value"><a class="btn-text" href="index.html">← サマリレポートへ戻る</a></div>
+    <div class="meta-item">
+      <div class="meta-label">Back</div>
+      <div class="meta-value"><a class="btn ghost" href="index.html">サマリへ戻る</a></div>
     </div>
   </div>
 </header>
@@ -875,7 +995,7 @@ def render_messages(msgs: list[dict]) -> str:
 </section>
 
 <footer>
-  <a class="btn-text" href="index.html">← サマリレポートへ戻る</a>
+  <a class="btn ghost" href="index.html">サマリへ戻る</a>
 </footer>
 
 </div>
