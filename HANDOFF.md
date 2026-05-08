@@ -3,7 +3,7 @@
 別ターミナルでも作業を続けられるようにするためのまとめ。
 新しい Claude / 開発者はこのファイルを読めば現状と次の選択肢を把握できる。
 
-最終更新: 2026-05-09（cross_filter / マイナビ・Wantedly source / Wantedly リード率 35% を実証）
+最終更新: 2026-05-09 後半（Wantedly 100 社実測 / sitemap 連携で母集団拡大 / **リード率 56%** / 営業文章 55 件生成）
 
 ---
 
@@ -91,10 +91,19 @@
   - 提携先は中小規模媒体・ATS 系（engage / ジョブカン / HRMOS / HERP / Talentio 等）
   - 主要転職媒体（doda / マイナビ / リクナビ / en / ビズリーチ / Wantedly / type / Forkwell / LinkedIn / Indeed）は **0 件提携**
   - マイナビ重複が高い理由 = 同社の ATS 経由集約のため、と判明
-- [x] **5/9 リード抽出実測**:
+- [x] **5/9 リード抽出実測（前半 / 媒体別パイロット）**:
   - マイナビ 30 社: MISSING 2 件（**リード率 7%**）
   - Wantedly 17 社: MISSING 6 件（**リード率 35%**）
   - スタートアップ系媒体ほど ATS 経由集約が少なく、求人ボックス未出稿の割合が高い
+- [x] **5/9 後半 wantedly.py 改造**: `/projects` だけでは会社単位の重複排除で 16〜20 社が上限と判明。Wantedly sitemap (`sitemap.xml.gz` → `sitemap1〜N.xml.gz`) から `/companies/<slug>` を取り、`<title>` 解析で会社名を抽出する Phase 2 を追加。Phase 1 (`/projects` フィルタ巡回) で取れる active 求人会社を優先確保したうえで、Phase 2 で 100 社まで補完する。
+- [x] **5/9 後半 Wantedly 100 社実測**:
+  - 母集団 100 社 = Phase 1 27 社 + Phase 2 73 社（sitemap1 由来 unique slug 3,703 から重複排除）
+  - **MISSING 56 社 / EXISTS 44 社 → リード率 56%**（17 件パイロットの 35% を上回る）
+  - 主要 MISSING: 株式会社AILES / JAPAN SELECT / 株式会社nanairo / 株式会社ZUU / 株式会社ヒトメディア / a-works株式会社 / カイト株式会社 / 株式会社マネタイズ / キャリアフィールド株式会社 / 株式会社Highlanders ほか
+  - 誤陽性 1 件: Wantedly, Inc. （sitemap 由来、`generate_for_leads.py` 側のブラックリストで除外）
+  - 業種フィルタは未適用。MISSING 56 社中で「人材紹介・派遣業」かは目視確認が必要
+  - 出力: `poc/output/unmatched_leads.{csv,json,html}` / 旧 phase1 限定結果は `unmatched_leads_phase1_only.{csv,json}` に退避済
+- [x] **5/9 後半 営業文章生成 (55 社)**: `poc/generate_for_leads.py` を新設。MISSING 56 社から Wantedly 自社 1 件を除外し、55 社に対して `OutreachGenerator` を呼び出して件名+本文を生成。industry_summary は Wantedly 求人タイトル（phase1 由来）または「Wantedly 掲載企業」（phase2 由来）で代用。出力: `poc/output/lead_outreach_messages.{csv,json}`
 
 ---
 
@@ -111,21 +120,25 @@ PR #2 の Cloudflare Workers ビルド失敗は **このリポジトリと無関
 
 ---
 
-## 6. 次の選択肢（5/9 時点）
+## 6. 次の選択肢（5/9 後半時点）
 
-新しいセッションで作業を再開するなら、まず依頼者にどれを進めるか確認すること。
+A（Wantedly 100 社）と E（営業文章生成 55 社）は実施済。新しいセッションで作業を再開するなら、まず依頼者にどれを進めるか確認すること。
 
 | # | やること | 概要 | 所要 |
 |---|---------|------|------|
-| A | **Wantedly 100 件**まで母集団拡大 | `--source wantedly --max-companies 100`（occupation_id カテゴリ巡回拡張）。リード率 35% で約 35 件のリード候補を期待 | 約 100 分 / ~$15 |
-| B | **マイナビ + Wantedly 合算** | 多媒体マージで 100 件規模 | 同上 |
+| ~~A~~ | ~~Wantedly 100 件~~ | **完了**: MISSING 56 社（リード率 56%） | - |
+| ~~E~~ | ~~MISSING 社に営業文章生成~~ | **完了**: 55 社分 `lead_outreach_messages.{csv,json}` 出力 | - |
+| K | **営業文章レビュー + 送信者情報差し替え** | 55 件の文面を高屋氏が目視レビュー、`SENDER_EMAIL` 等を実値に差し替えて再生成 | 30 分 |
+| H | **業種フィルタを cross_filter に追加** | 「人材紹介・派遣業」かどうかを Wantedly 求人タイトル + AI 推定で判定して MISSING を絞り込む。56 社中で人材系のみ抽出 | 30〜45 分 / ~$1 |
+| I | **厚労省連携で許可番号・住所・電話を補完** | MISSING 55 社に対して `mhlw.py` を呼び出し、許可番号取得率を 80% に引き上げ → 営業文章の質向上 | 約 30 分 + 5 秒/社 |
+| J | **Wantedly 200〜500 社へ拡張** | sitemap2〜5 も巡って母集団拡大。リード率 50%+ なら 100〜250 社規模のリードリスト | 1〜3 時間 / ~$2〜$5 |
+| B | **マイナビ + Wantedly 合算** | 多媒体マージで 100〜200 件規模 | 約 60〜120 分 |
 | C | **doda Cloudflare 突破調査** | playwright firefox / browser-use CLI / 専用 proxy 等で別経路試行 | 不確実、調査 1 時間 |
 | D | **リクナビ NEXT / en 転職 / Forkwell 追加** | 媒体ポートフォリオ拡大、Wantedly 同様の URL 構造調査が必要 | 各 30〜60 分実装 |
-| E | **既存リード 8 件で営業文章生成** | `cross_filter` の MISSING リストを generator にかけて文章付与 | 5 分 / ~$0.5 |
 | F | **フォーム送信エンジンの設計書** | 第2フェーズ。Computer Use / 直接POST の比較設計、法務 RFC ドラフト | 約 30 分 |
 | G | **PR #2 マージ判断・最終レポート** | レビュー反映、依頼者向けクライアントレポート整理 | 30〜60 分 |
 
-おすすめは **A → E**（最高リード率を厚く取って即営業可能化）。
+おすすめは **K → H → I**（55 件のリードを高品質化して営業着手可能な状態にする）。または依頼者が即営業に進みたいなら **G**（最終レポート整理）。
 
 ---
 
