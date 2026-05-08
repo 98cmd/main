@@ -46,8 +46,12 @@ def deploy(name: str, report_dir: Path, prod: bool = True) -> dict:
         raise RuntimeError("VERCEL_API_KEY env not set")
 
     files = []
+    # HTML/CSS/JS/JSON のみアップロード。screenshots/ 等の重いバイナリは除外。
+    allowed_suffixes = {".html", ".css", ".js", ".json", ".svg", ".webmanifest"}
     for p in sorted(report_dir.rglob("*")):
         if p.is_dir():
+            continue
+        if p.suffix.lower() not in allowed_suffixes:
             continue
         rel = p.relative_to(report_dir).as_posix()
         data = base64.b64encode(p.read_bytes()).decode("ascii")
