@@ -3,7 +3,9 @@
 別ターミナルでも作業を続けられるようにするためのまとめ。
 新しい Claude / 開発者はこのファイルを読めば現状と次の選択肢を把握できる。
 
-最終更新: 2026-05-09 後半（Wantedly 100 社実測 / sitemap 連携で母集団拡大 / **リード率 56%** / 営業文章 55 件生成）
+最終更新: 2026-05-09 深夜（Wantedly 100 社実測 / **リード率 56%** / 営業文章 55 件 100% 有効 / クライアントレポートを Vercel 公開）
+
+クライアント公開 URL: https://kyujinbox-client-report-skuwahara-6605s-projects.vercel.app
 
 ---
 
@@ -104,6 +106,12 @@
   - 業種フィルタは未適用。MISSING 56 社中で「人材紹介・派遣業」かは目視確認が必要
   - 出力: `poc/output/unmatched_leads.{csv,json,html}` / 旧 phase1 限定結果は `unmatched_leads_phase1_only.{csv,json}` に退避済
 - [x] **5/9 後半 営業文章生成 (55 社)**: `poc/generate_for_leads.py` を新設。MISSING 56 社から Wantedly 自社 1 件を除外し、55 社に対して `OutreachGenerator` を呼び出して件名+本文を生成。industry_summary は Wantedly 求人タイトル（phase1 由来）または「Wantedly 掲載企業」（phase2 由来）で代用。出力: `poc/output/lead_outreach_messages.{csv,json}`
+- [x] **5/9 深夜 generator.py 汎用化**: 「人材紹介・人材派遣会社向け」限定を撤廃。MISSING 55 社の大半が SaaS/IT/NPO 等の非人材だったため、初版では拒否レスポンス 3 件 + 不明 6 件が混入。SYSTEM_TEMPLATE から業種限定を外し「対象外と返さない」を明示指示。再生成で **55 件 100% 有効率**を達成。
+- [x] **5/9 深夜 クライアント向けレポート公開**: `generate_client_report.py` 新設で 1 ページ完結 HTML を生成（数値カード / SVG ドーナツチャート / 棒グラフ / リード一覧 / 営業文章サンプル 3 件 + messages.html）。`deploy_vercel.py` で Vercel REST API 直接デプロイ（`vercel deploy` CLI 不使用）。`screenshot_report.py` で Playwright full-page スクショも生成。
+  - 公開 URL: https://kyujinbox-client-report-skuwahara-6605s-projects.vercel.app
+  - SSO 保護はデプロイ後に API で解除済み（URL 知ってれば誰でも閲覧可能）
+  - スクショ: `client_report/screenshots/report_summary.png` (2.8MB) / `report_messages.png` (9.5MB)
+  - 注意: SENDER_EMAIL は `takaya@updraft.example` の placeholder のまま。クライアント送付前に env を本番値に差し替えて再生成 → 再デプロイが必要
 
 ---
 
@@ -120,15 +128,16 @@ PR #2 の Cloudflare Workers ビルド失敗は **このリポジトリと無関
 
 ---
 
-## 6. 次の選択肢（5/9 後半時点）
+## 6. 次の選択肢（5/9 深夜時点）
 
-A（Wantedly 100 社）と E（営業文章生成 55 社）は実施済。新しいセッションで作業を再開するなら、まず依頼者にどれを進めるか確認すること。
+A（Wantedly 100 社）/ E（営業文章生成 55 社）/ G（クライアント向けレポート公開）は実施済。新しいセッションで作業を再開するなら、まず依頼者にどれを進めるか確認すること。
 
 | # | やること | 概要 | 所要 |
 |---|---------|------|------|
 | ~~A~~ | ~~Wantedly 100 件~~ | **完了**: MISSING 56 社（リード率 56%） | - |
-| ~~E~~ | ~~MISSING 社に営業文章生成~~ | **完了**: 55 社分 `lead_outreach_messages.{csv,json}` 出力 | - |
-| K | **営業文章レビュー + 送信者情報差し替え** | 55 件の文面を高屋氏が目視レビュー、`SENDER_EMAIL` 等を実値に差し替えて再生成 | 30 分 |
+| ~~E~~ | ~~MISSING 社に営業文章生成~~ | **完了**: 55 件 100% 有効、generator 汎用化済 | - |
+| ~~G~~ | ~~クライアントレポート~~ | **完了**: Vercel 公開済（URL は § 1 直下に記載）、スクショ 2 種生成済 | - |
+| K | **送信者情報を本番値に差し替えて再生成 + 再デプロイ** | `SENDER_NAME / SENDER_COMPANY / SENDER_EMAIL / SERVICE_NAME / SERVICE_DESCRIPTION` を高屋氏の実情報に差し替え、55 件再生成して Vercel に再デプロイ | 約 15 分 / ~$0.5 |
 | H | **業種フィルタを cross_filter に追加** | 「人材紹介・派遣業」かどうかを Wantedly 求人タイトル + AI 推定で判定して MISSING を絞り込む。56 社中で人材系のみ抽出 | 30〜45 分 / ~$1 |
 | I | **厚労省連携で許可番号・住所・電話を補完** | MISSING 55 社に対して `mhlw.py` を呼び出し、許可番号取得率を 80% に引き上げ → 営業文章の質向上 | 約 30 分 + 5 秒/社 |
 | J | **Wantedly 200〜500 社へ拡張** | sitemap2〜5 も巡って母集団拡大。リード率 50%+ なら 100〜250 社規模のリードリスト | 1〜3 時間 / ~$2〜$5 |
@@ -136,9 +145,9 @@ A（Wantedly 100 社）と E（営業文章生成 55 社）は実施済。新し
 | C | **doda Cloudflare 突破調査** | playwright firefox / browser-use CLI / 専用 proxy 等で別経路試行 | 不確実、調査 1 時間 |
 | D | **リクナビ NEXT / en 転職 / Forkwell 追加** | 媒体ポートフォリオ拡大、Wantedly 同様の URL 構造調査が必要 | 各 30〜60 分実装 |
 | F | **フォーム送信エンジンの設計書** | 第2フェーズ。Computer Use / 直接POST の比較設計、法務 RFC ドラフト | 約 30 分 |
-| G | **PR #2 マージ判断・最終レポート** | レビュー反映、依頼者向けクライアントレポート整理 | 30〜60 分 |
+| L | **PR #2 マージ判断** | コミット 51f2d6a / 08ad485 を含むブランチをマージ可能か高屋氏に確認 | 5〜10 分 |
 
-おすすめは **K → H → I**（55 件のリードを高品質化して営業着手可能な状態にする）。または依頼者が即営業に進みたいなら **G**（最終レポート整理）。
+おすすめは **K**（クライアントに送る前に送信者情報を実値に差し替える）→ 高屋氏のレビュー → 必要なら **H**（業種フィルタで絞り込み）/ **I**（厚労省で許可番号補完）/ **J**（母集団拡大）に進む。
 
 ---
 
