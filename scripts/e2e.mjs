@@ -305,6 +305,74 @@ async function main() {
   const okCount = race.filter((r) => r.ok).length;
   check("exactly one concurrent booking wins", okCount === 1, JSON.stringify(race));
 
+  // --- 既存予約のバッファが後続予約をブロックすること ---
+  console.log("buffer honoring");
+  const bufForm = new URLSearchParams({
+    title: "バッファ付き30分",
+    description: "",
+    duration_min: "30",
+    slot_step_min: "30",
+    days_ahead: "7",
+    buffer_before_min: "0",
+    buffer_after_min: "30",
+    min_notice_hours: "0",
+    max_per_day: "",
+    start_time: "00:00",
+    end_time: "23:30",
+  });
+  for (let w = 0; w <= 6; w++) bufForm.append("weekday", String(w));
+  await fetch(`${APP}/event-types`, {
+    method: "POST",
+    redirect: "manual",
+    headers: { ...authed, "content-type": "application/x-www-form-urlencoded" },
+    body: bufForm.toString(),
+  });
+  res = await fetch(`${APP}/links`, {
+    method: "POST",
+    redirect: "manual",
+    headers: { ...authed, "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      event_type_id: "2",
+      channel_label: "バッファ検証",
+      back: "links",
+    }).toString(),
+  });
+  const slug2 = /issued=([A-Za-z0-9]+)/.exec(res.headers.get("location") ?? "")?.[1];
+  res = await fetch(`${APP}/api/slots/${slug2}`);
+  const bufSlots = (await res.json()).slots;
+  // 連続した2枠を選ぶ(30分刻みなので start+30分 の枠があるはず)
+  const first = bufSlots[0];
+  const adjacent = bufSlots.find((s) => s.start === first.start + 30 * 60_000);
+  check("adjacent slot exists before booking", !!adjacent);
+  res = await fetch(`${APP}/api/book/${slug2}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      start: first.start,
+      name: "バッファ一人目",
+      email: "buf1@example.com",
+      tz: "Asia/Tokyo",
+    }),
+  });
+  check("buffered booking succeeds", (await res.json()).ok === true);
+  res = await fetch(`${APP}/api/book/${slug2}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      start: adjacent.start,
+      name: "バッファ二人目",
+      email: "buf2@example.com",
+      tz: "Asia/Tokyo",
+    }),
+  });
+  check("adjacent slot blocked by after-buffer", res.status === 409);
+  res = await fetch(`${APP}/api/slots/${slug2}`);
+  const bufSlotsAfter = (await res.json()).slots;
+  check(
+    "adjacent slot hidden from availability",
+    !bufSlotsAfter.some((s) => s.start === adjacent.start),
+  );
+
   // 未知のスラッグは404
   res = await fetch(`${APP}/b/nonexistent`);
   check("unknown slug returns 404", res.status === 404);

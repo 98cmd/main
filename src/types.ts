@@ -57,6 +57,8 @@ export interface BookingRow {
   guest_tz: string;
   start_ts: number;
   end_ts: number;
+  guard_start: number;
+  guard_end: number;
   host_date: string;
   status: "pending" | "confirmed" | "canceled";
   google_event_id: string | null;

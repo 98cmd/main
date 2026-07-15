@@ -37,15 +37,16 @@ export async function slotsForEventType(
     rangeEnd,
   );
 
-  // カレンダー未反映の予約(処理中含む)もブロック対象にする(このホストの分のみ)
+  // カレンダー未反映の予約(処理中含む)もブロック対象にする(このホストの分のみ)。
+  // 既存予約側のバッファを尊重するため、guard範囲をbusyとして扱う
   const dbBusy = (await db.query(
-    `SELECT b.start_ts, b.end_ts FROM bookings b
+    `SELECT b.guard_start, b.guard_end FROM bookings b
      JOIN event_types et ON et.id = b.event_type_id
      WHERE et.user_id = ? AND b.status IN ('pending', 'confirmed')
-       AND b.start_ts < ? AND b.end_ts > ?`,
+       AND b.guard_start < ? AND b.guard_end > ?`,
     [user.id, rangeEnd, rangeStart],
-  )) as unknown as { start_ts: number; end_ts: number }[];
-  for (const b of dbBusy) busy.push({ start: b.start_ts, end: b.end_ts });
+  )) as unknown as { guard_start: number; guard_end: number }[];
+  for (const b of dbBusy) busy.push({ start: b.guard_start, end: b.guard_end });
 
   const perDay = (await db.query(
     `SELECT host_date, COUNT(*) AS c FROM bookings

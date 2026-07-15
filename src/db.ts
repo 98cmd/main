@@ -72,6 +72,8 @@ CREATE TABLE IF NOT EXISTS bookings (
   guest_tz TEXT NOT NULL DEFAULT 'Asia/Tokyo',
   start_ts INTEGER NOT NULL,
   end_ts INTEGER NOT NULL,
+  guard_start INTEGER NOT NULL,
+  guard_end INTEGER NOT NULL,
   host_date TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
   google_event_id TEXT,
@@ -234,12 +236,13 @@ export class AppDB extends DurableObject {
       input.now - PENDING_TTL_MS,
     );
 
+    // 既存予約側のバッファ(guard_start/guard_end)と新規予約側のバッファの両方を尊重して重複判定
     const overlap = this.sql
       .exec(
         `SELECT COUNT(*) AS c FROM bookings b
          JOIN event_types et ON et.id = b.event_type_id
          WHERE et.user_id = ? AND b.status IN ('pending', 'confirmed')
-           AND b.start_ts < ? AND b.end_ts > ?`,
+           AND b.guard_start < ? AND b.guard_end > ?`,
         input.userId,
         input.guardEnd,
         input.guardStart,
@@ -276,8 +279,8 @@ export class AppDB extends DurableObject {
     this.sql.exec(
       `INSERT INTO bookings
          (link_id, event_type_id, guest_name, guest_email, guest_note, guest_tz,
-          start_ts, end_ts, host_date, status, cancel_token, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
+          start_ts, end_ts, guard_start, guard_end, host_date, status, cancel_token, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`,
       input.linkId,
       input.eventTypeId,
       input.guestName,
@@ -286,6 +289,8 @@ export class AppDB extends DurableObject {
       input.guestTz,
       input.start,
       input.end,
+      input.guardStart,
+      input.guardEnd,
       input.hostDate,
       cancelToken,
       input.now,
