@@ -78,18 +78,23 @@
 
 ---
 
-## 3. 技術スタック(推奨)
+## 3. 技術スタック
+
+> **2026-07-15 更新**: 当初案は Next.js + Vercel + PostgreSQL だったが、
+> このリポジトリには Cloudflare Workers の自動デプロイ(mainブランチ)が既に構成されており、
+> (1) push だけで本番反映 (2) 外部DB契約が不要 (3) 完全無料 という理由で
+> **Cloudflare Workers スタックに変更して実装した**。
 
 | レイヤ | 技術 | 理由 |
 |---|---|---|
-| フレームワーク | Next.js (App Router) + TypeScript | 予約ページ(公開) と ダッシュボード(認証) を1アプリで両立 |
-| ホスティング | Vercel | 個人利用なら無料枠で十分。デプロイが容易 |
-| DB | PostgreSQL (Neon / Supabase) + Prisma | 無料枠あり。スキーマ管理が楽 |
-| 認証 | Auth.js (NextAuth) Google Provider | Calendar スコープの OAuth と refresh token 管理 |
-| Google API | googleapis (公式SDK) | freebusy 取得 / events.insert(Meet発行) |
-| UI | Tailwind CSS + shadcn/ui | 予約カレンダーUIを素早く構築 |
-| メール | Resend | 個人利用の無料枠で十分。React Email でテンプレ管理 |
-| 日時処理 | date-fns + date-fns-tz | タイムゾーン変換(JST ↔ ゲストTZ) |
+| ランタイム | Cloudflare Workers | リポジトリに自動デプロイ構成済み。無料 |
+| フレームワーク | Hono + TypeScript | Workersネイティブ。SSR + 少量のバニラJSで軽量に |
+| DB | Durable Objects SQLite | 事前プロビジョニング不要・追加契約不要。単一DOで直列化されるためダブルブッキング防止も容易 |
+| 認証 | 自前実装の Google OAuth (authorization code flow) | Workersで動く軽量な実装。セッションは署名付きCookie |
+| Google API | REST を直接 fetch | googleapis SDK はNode依存が強くWorkersに不向き |
+| UI | ハンドメイドCSS(SSR) | 個人利用に十分。ビルドパイプライン不要 |
+| メール | Googleカレンダーの招待メールを利用 | events.insert の sendUpdates=all で招待・リマインドともGoogleが送るため外部メールサービス不要 |
+| 日時処理 | Intl API(自前ユーティリティ) | Workersで動作。外部ライブラリ不要 |
 
 ### Google Cloud 側の準備
 
