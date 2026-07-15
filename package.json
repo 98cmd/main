@@ -1,0 +1,21 @@
+{
+  "name": "main",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "tsc --noEmit && wrangler deploy --dry-run",
+    "test": "vitest run",
+    "e2e": "node scripts/e2e.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.8.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260710.1",
+    "typescript": "^5.5.4",
+    "vitest": "^3.2.0",
+    "wrangler": "^4.24.0"
+  }
+}
