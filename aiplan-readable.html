@@ -1,0 +1,357 @@
+<title>第Ⅱ期AI基本計画を、わかりやすく</title>
+<style>
+:root{
+  --bg:#f4f5f7;
+  --surface:#ffffff;
+  --ink:#1a2233;
+  --muted:#5a6475;
+  --line:#dde0e6;
+  --accent:#2d4f9e;
+  --accent-soft:#e7ecf7;
+  --p1:#2d4f9e; --p1-soft:#e7ecf7;
+  --p2:#147d74; --p2-soft:#e2f1ef;
+  --p3:#5b3a8e; --p3-soft:#ede7f5;
+  --p4:#a86518; --p4-soft:#f6ede0;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#12161f;
+    --surface:#1a2029;
+    --ink:#e8eaf0;
+    --muted:#9aa3b4;
+    --line:#2a3140;
+    --accent:#7d9bdd;
+    --accent-soft:#232c40;
+    --p1:#7d9bdd; --p1-soft:#232c40;
+    --p2:#5cbdb2; --p2-soft:#1a3230;
+    --p3:#b394e0; --p3-soft:#2c2338;
+    --p4:#dda85e; --p4-soft:#352a1a;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#f4f5f7; --surface:#ffffff; --ink:#1a2233; --muted:#5a6475; --line:#dde0e6;
+  --accent:#2d4f9e; --accent-soft:#e7ecf7;
+  --p1:#2d4f9e; --p1-soft:#e7ecf7;
+  --p2:#147d74; --p2-soft:#e2f1ef;
+  --p3:#5b3a8e; --p3-soft:#ede7f5;
+  --p4:#a86518; --p4-soft:#f6ede0;
+}
+:root[data-theme="dark"]{
+  --bg:#12161f; --surface:#1a2029; --ink:#e8eaf0; --muted:#9aa3b4; --line:#2a3140;
+  --accent:#7d9bdd; --accent-soft:#232c40;
+  --p1:#7d9bdd; --p1-soft:#232c40;
+  --p2:#5cbdb2; --p2-soft:#1a3230;
+  --p3:#b394e0; --p3-soft:#2c2338;
+  --p4:#dda85e; --p4-soft:#352a1a;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic","Noto Sans JP",-apple-system,sans-serif;
+  line-height:1.85;
+  font-size:16px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:880px;margin:0 auto;padding:0 24px 96px}
+.serif{font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP","MS PMincho",serif}
+
+/* hero */
+header{padding:72px 0 8px}
+.eyebrow{
+  font-size:12.5px;letter-spacing:.14em;color:var(--muted);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.eyebrow::before{content:"";display:inline-block;width:28px;height:1px;background:var(--accent)}
+h1{
+  font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;
+  font-size:clamp(28px,5.4vw,44px);
+  font-weight:600;line-height:1.35;margin:18px 0 6px;
+  text-wrap:balance;
+}
+.subtitle{
+  font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;
+  color:var(--accent);font-size:clamp(16px,2.6vw,20px);margin:0 0 28px;
+}
+
+/* tl;dr */
+.tldr{
+  background:var(--surface);border:1px solid var(--line);border-radius:6px;
+  padding:26px 28px;margin:16px 0 0;
+  border-top:3px solid var(--accent);
+}
+.tldr h2{margin:0 0 12px;font-size:14px;letter-spacing:.16em;color:var(--accent)}
+.tldr ol{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:8px}
+.tldr li::marker{color:var(--accent);font-weight:600}
+.tldr b{font-weight:600}
+
+/* sections */
+section{margin-top:64px}
+.sec-label{
+  font-size:12.5px;letter-spacing:.18em;color:var(--muted);margin:0 0 8px;
+}
+h2.sec-title{
+  font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;
+  font-size:clamp(22px,3.6vw,28px);font-weight:600;margin:0 0 8px;line-height:1.4;
+  text-wrap:balance;
+}
+.sec-lede{color:var(--muted);margin:0 0 28px;max-width:44em}
+
+/* background cards */
+.bg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.bg-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:6px;
+  padding:20px 22px;
+}
+.bg-card h3{margin:0 0 8px;font-size:15.5px;font-weight:600}
+.bg-card h3 span{color:var(--accent);margin-right:.4em}
+.bg-card p{margin:0;font-size:14px;color:var(--muted);line-height:1.8}
+
+/* pillars */
+.pillar{
+  background:var(--surface);border:1px solid var(--line);border-radius:6px;
+  margin-bottom:22px;overflow:hidden;
+  border-left:4px solid var(--pc,var(--accent));
+}
+.pillar-head{padding:26px 28px 20px}
+.pillar-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:12.5px;letter-spacing:.1em;font-weight:600;
+  color:var(--pc);background:var(--pcs);
+  padding:4px 12px;border-radius:999px;margin-bottom:12px;
+}
+.pillar h3{
+  font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;
+  font-size:clamp(19px,3vw,23px);font-weight:600;margin:0 0 10px;line-height:1.45;
+}
+.pillar h3 small{display:block;font-size:13px;color:var(--muted);font-family:inherit;font-weight:400;margin-top:4px;letter-spacing:.04em}
+.pillar-plain{margin:0;font-size:15px}
+.pillar-plain b{color:var(--pc)}
+.pillar ul{margin:14px 28px 0;padding:0 0 0 1.2em;display:flex;flex-direction:column;gap:8px;font-size:14.5px}
+.pillar ul li::marker{color:var(--pc)}
+.pillar details{border-top:1px solid var(--line);margin-top:22px}
+.pillar summary{
+  cursor:pointer;padding:14px 28px;font-size:13.5px;font-weight:600;color:var(--pc);
+  letter-spacing:.06em;list-style:none;display:flex;align-items:center;gap:8px;
+}
+.pillar summary::-webkit-details-marker{display:none}
+.pillar summary::before{content:"＋";font-weight:400}
+.pillar details[open] summary::before{content:"－"}
+.pillar summary:focus-visible{outline:2px solid var(--pc);outline-offset:-2px}
+.pillar details ul{margin:0 28px 24px;color:var(--ink)}
+.pillar details ul li{color:inherit}
+
+/* principles */
+.princ-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.princ{
+  background:var(--surface);border:1px solid var(--line);border-radius:6px;
+  padding:18px 20px;font-size:14.5px;font-weight:600;line-height:1.6;
+}
+.princ span{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:6px}
+.note{
+  margin-top:16px;padding:16px 20px;background:var(--accent-soft);border-radius:6px;
+  font-size:13.5px;color:var(--ink);
+}
+
+/* glossary */
+dl{margin:0;display:grid;gap:0;background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.term{display:grid;grid-template-columns:minmax(130px,180px) 1fr;gap:16px;padding:16px 22px;border-top:1px solid var(--line)}
+.term:first-child{border-top:none}
+dt{font-weight:600;font-size:14px;color:var(--accent)}
+dd{margin:0;font-size:14px;color:var(--muted);line-height:1.8}
+@media (max-width:560px){.term{grid-template-columns:1fr;gap:4px}}
+
+/* footer */
+footer{margin-top:72px;padding-top:24px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);line-height:2}
+footer a{color:var(--accent)}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">内閣府 ＡＩ戦略｜2026年7月14日</p>
+  <h1>第Ⅱ期 人工知能基本計画<br>（概要）を、わかりやすく</h1>
+  <p class="subtitle">〜日本ＡＸ、より強く、より豊かに〜</p>
+
+  <div class="tldr">
+    <h2>まず3行で</h2>
+    <ol>
+      <li>ＡＩは「道具」から<b>自分で判断して動く「エージェント」</b>に進化中。その波に日本の計算資源・電力・制度まで丸ごと対応させる。</li>
+      <li>合言葉は<b>ＡＸ（ＡＩトランスフォーメーション）</b>。ＡＩがあることを前提に、仕事や意思決定のやり方を根本から作り直す。</li>
+      <li>「<b>信頼できるＡＩ</b>」を日本の強みにして、人とＡＩが協働する社会を世界に先駆けて実現する。</li>
+    </ol>
+  </div>
+</header>
+
+<section>
+  <p class="sec-label">背景 ── 基本構想</p>
+  <h2 class="sec-title">なぜ今、この計画なのか</h2>
+  <p class="sec-lede">元のPDFの2ページ目にあたる部分です。世界の状況と、日本の立ち位置の整理から始まります。</p>
+  <div class="bg-grid">
+    <div class="bg-card">
+      <h3><span>◼</span>ＡＩ技術の進展</h3>
+      <p>ＡＩは業務を支援するツールから、意思決定・実行を担う主体へ進化。エージェント型ＡＩが急伸し、産業から安全保障まで業務全体を自律的に回す基盤になりつつある。その実装の在り方は経済力・防衛力・技術力といった国力に直結する。</p>
+    </div>
+    <div class="bg-card">
+      <h3><span>◼</span>日本の現状と課題</h3>
+      <p>現場実務でのＡＩ利活用は加速し開発投資も伸びているが、組織全体・中小企業・地域での活用に課題。計算資源、電力、人材、データ、制度・政策まで、総体としての「ＡＩ実装能力」の強化が必要。</p>
+    </div>
+    <div class="bg-card">
+      <h3><span>◼</span>日本の勝ち筋</h3>
+      <p>現場の力を活かせる「バーティカルＡＩ」（業界特化型）と「フィジカルＡＩ」（ロボット・自動運転など）に重点を置く。同志国と連携しつつ戦略的な自律性を確保し、開かれた「ＡＩ主権」を確立する。</p>
+    </div>
+    <div class="bg-card">
+      <h3><span>◼</span>リスクへの対応</h3>
+      <p>エージェント型ＡＩの登場でリスクは複雑化・深刻化。ＡＩ法などの「制度」に加え、「技術」「組織管理」でも統合的に対応し、「責任あるアジャイル・ガバナンス」に能動的に取り組む。</p>
+    </div>
+    <div class="bg-card">
+      <h3><span>◼</span>社会全体でのＡＸへ</h3>
+      <p>制度や政策そのものをＡＩ前提で再構築する。同時に、判断責任をはじめ「人が創造すべき価値とは何か」を探究し、人が人として生きるための社会の枠組みづくりと「人間力」の増進に率先して取り組む。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="sec-label">本編 ── ４つの基本方針</p>
+  <h2 class="sec-title">計画の骨格は「使う・創る・信頼・協働」の４本柱</h2>
+  <p class="sec-lede">それぞれの柱の要点と、今回の計画で拡充された具体策（元PDFの3〜6ページ）をまとめました。「＋ 主な拡充内容」を開くと詳細が見られます。</p>
+
+  <div class="pillar" style="--pc:var(--p1);--pcs:var(--p1-soft)">
+    <div class="pillar-head">
+      <span class="pillar-tag">方針 1｜ＡＩを使う</span>
+      <h3>ＡＩ利活用の加速的推進<small>エージェント型ＡＩ等の積極適用、政府における率先導入</small></h3>
+      <p class="pillar-plain">まず<b>政府自身が率先してＡＩを使い倒す</b>。行政・自治体・産業のすみずみまで利活用を広げる柱です。</p>
+    </div>
+    <ul>
+      <li>政府・自治体でのＡＩの徹底した利活用 ── ガバメントＡＩ「源内」の進化と普及、地方の伸び代を成長に転換（地域ＡＸ）</li>
+      <li>ＡＩ利活用促進による社会課題解決・新事業創出 ── バーティカルＡＩ・フィジカルＡＩ中心に社会実装を加速</li>
+      <li>データ戦略・仕組みづくり ── 政府・準公共・産業分野でデータ連携基盤を構築</li>
+    </ul>
+    <details>
+      <summary>主な拡充内容（元PDF 3ページ目）</summary>
+      <ul>
+        <li>エージェント型ＡＩの導入や国産ＡＩモデルの積極活用も含めたガバメントＡＩを推進。「源内」のオープンソース化を通じて自治体のＡＩ導入を支援</li>
+        <li>優良なユースケースの横展開などにより、ＡＩによる自治体業務の構造変革を目指す</li>
+        <li>中堅・中小企業のＡＩ導入、地域密着型の新規事業立ち上げ、先進的な地域課題解決プロジェクトの創出を支援</li>
+        <li>医療・金融・教育・防災等の各分野で、バーティカルＡＩ・フィジカルＡＩを核とした開発・実証・導入・社会実装を促進。領域別戦略を策定し官民で投資を集中</li>
+        <li>防衛力の変革に向けて、データとＡＩを最大限に活用</li>
+        <li>地理空間情報のデータ連携・流通環境を構築し「ジオＡＩ」を推進</li>
+        <li>政府・準公共・産業・研究分野のデータ連携基盤を構築。データ精製・データ連携を担う国内プラットフォームサービスを育成</li>
+        <li>社会全体のＡＸのため、府省庁横断で法制度・ガイドライン・運用ルールを抜本的に見直し</li>
+      </ul>
+    </details>
+  </div>
+
+  <div class="pillar" style="--pc:var(--p2);--pcs:var(--p2-soft)">
+    <div class="pillar-head">
+      <span class="pillar-tag">方針 2｜ＡＩを創る</span>
+      <h3>ＡＩ開発力の戦略的強化<small>ＡＩ実装能力を高め、「ＡＩ主権」を確保する</small></h3>
+      <p class="pillar-plain">計算資源・電力・人材・データという<b>開発の土台を国家基盤として固め</b>、日本の強みが出る領域で勝負する柱です。</p>
+    </div>
+    <ul>
+      <li>ＡＩ研究開発・利用基盤の拡充・高度化 ── 国家基盤として計算資源・データ・安定した電力供給を確保</li>
+      <li>国内ＡＩ開発力の強化 ── データセット創出、内外トップ人材確保、モデル開発高度化、評価基盤・テストベッド整備</li>
+      <li>信頼できるＡＩ基盤モデル等の開発 ── 日本の文化等を踏まえた開発・評価、マルチモーダル基盤モデルの開発推進</li>
+      <li>日本の勝ち筋の追求 ── バーティカルＡＩ（領域別戦略）、フィジカルＡＩ（ＡＩロボティクス・自動運転）、AI for Science</li>
+    </ul>
+    <details>
+      <summary>主な拡充内容（元PDF 4ページ目）</summary>
+      <ul>
+        <li>国内で開発・製造されるＡＩインフラ（データ、地域共生にも配慮したデータセンター、計算基盤、半導体）の生産・供給能力を拡大し、サプライチェーンを強化</li>
+        <li>トップ人材を含むＡＩ研究者・開発者を確保し、ＡＩ駆動型研究に取り組める支援制度を充実</li>
+        <li>「AI for Scienceの推進に向けた基本的な戦略方針」を踏まえ、基礎研究・国際連携・研究インフラ構築・研究データの戦略的管理を推進</li>
+        <li>暗黙知が豊富な現場へのバーティカルＡＩの開発・実装・輸出を促進し、国際競争力あるＡＩシステムの創出を目指す</li>
+        <li>産業用ロボットや自動車産業で培ったサプライチェーンの強みを活かし、多用途ロボットの国産メーカーやシステム・インテグレーターを強化・育成</li>
+        <li>ＡＩロボティクスの社会実装を含むフィジカルＡＩの研究開発・実証を官民で戦略的・統合的に促進</li>
+        <li>より高度な自動運転技術の研究開発実証と本格普及に向けた取組を推進</li>
+      </ul>
+    </details>
+  </div>
+
+  <div class="pillar" style="--pc:var(--p3);--pcs:var(--p3-soft)">
+    <div class="pillar-head">
+      <span class="pillar-tag">方針 3｜ＡＩの信頼性を高める</span>
+      <h3>ＡＩガバナンスの主導<small>ＡＩエコシステムにおける「信頼」の構築で世界をリード</small></h3>
+      <p class="pillar-plain">ＡＩ法を固定ルールにせず<b>状況に合わせて能動的に見直し続け</b>、「信頼できるＡＩ」の国際ルールづくりを日本が主導する柱です。</p>
+    </div>
+    <ul>
+      <li>責任あるアジャイル・ガバナンスの実現 ── ＡＩ法を含めた制度等の能動的かつ不断の見直し、Project YATA-Shield</li>
+      <li>グローバルサウス諸国を含めた国際協調 ── AISIの機能強化、信頼できるＡＩ共創に向けたＡＩサミットの早期日本開催</li>
+    </ul>
+    <details>
+      <summary>主な拡充内容（元PDF 5ページ目）</summary>
+      <ul>
+        <li>ＡＩ法第16条に基づく調査研究等を機動的に運用し、複雑化・深刻化するリスクに対応するためＡＩ法を含めた制度を能動的かつ不断に見直す</li>
+        <li>行政事務でのＡＩ利活用時の留意点を整理するほか、ＡＩ利活用に伴う権利侵害に関する法的整理を含め各種ガイドラインを整備</li>
+        <li>人工知能戦略本部にＡＩ関連の知見を集約し、制度や指針の点検・見直しを促す仕組みを構築</li>
+        <li>「Project YATA-Shield」に基づきサイバーセキュリティを確保。重要インフラ事業者等への対応、脆弱性の発見・修正を実施</li>
+        <li>高性能ＡＩを活用した取組の強化も含め、サイバー対処能力を不断に強化</li>
+        <li>ＡＩＳＩを中心に、ＡＩモデルの評価・トレーサビリティ・ガードレール等の技術的評価能力を確立・強化し、評価結果を制度・運用改善につなげる</li>
+        <li>ＡＩＳＩ国際ネットワーク等を活用して標準化・国際的なガバナンス議論を主導</li>
+        <li>日本が世界のＡＩイノベーションの結節点となるよう、ＡＩサミットを早期に日本で開催</li>
+      </ul>
+    </details>
+  </div>
+
+  <div class="pillar" style="--pc:var(--p4);--pcs:var(--p4-soft)">
+    <div class="pillar-head">
+      <span class="pillar-tag">方針 4｜ＡＩと協働する</span>
+      <h3>ＡＩ社会に向けた継続的変革<small>人が意思決定への責任を持ちながら、ＡＸで日本を駆動</small></h3>
+      <p class="pillar-plain">雇用・教育・知財など<b>社会の仕組みをＡＩ前提に作り替え</b>つつ、創造力や判断責任といった「人間力」を高める柱です。</p>
+    </div>
+    <ul>
+      <li>ＡＩを前提とした産業構造・雇用環境の構築 ── 中小企業・地方を含むＡＸ推進、雇用への影響を調査研究</li>
+      <li>制度・枠組みの検討・実証 ── 規制・制度改革、人とＡＩの責任関係、知財保護・利活用につながる透明性確保</li>
+      <li>ＡＩ時代の人材の育成・確保 ── ＡＩ実装人材の育成、全国民のＡＩリテラシー向上、リ・スキリング支援</li>
+      <li>ＡＩ時代における人間力の向上 ── 創造力・批判的思考・判断責任などの増進、人とＡＩの役割分担の探究</li>
+    </ul>
+    <details>
+      <summary>主な拡充内容（元PDF 6ページ目）</summary>
+      <ul>
+        <li>中堅・中小企業や地方部を含め各産業でＡＸを進め、ＡＩを融合させた新たな産業構造を生み出す</li>
+        <li>エージェント型ＡＩも前提に、権利侵害や損害が発生した場合の責任分界について継続的に検討</li>
+        <li>適切な知的財産の保護と利活用につながる透明性を確保し、コンテンツホルダーへの対価還元等を推進</li>
+        <li>ＡＩが働き方や雇用に与える影響を踏まえ、リ・スキリング推進を含む包括的な対策に能動的に取り組む</li>
+        <li>初等中等教育段階の生成ＡＩ利活用ガイドラインを改訂。教育特化ＡＩの実証研究等を通じ、学校での安全・安心で主体的な利活用を推進</li>
+        <li>ＡＸの中核となるＡＩ実装人材を質・量の両面から育成・確保</li>
+        <li>教職員向け研修の充実等を通じ、初等中等教育段階での情報活用能力を抜本的に向上</li>
+        <li>ＡＩ普及に伴う心理的影響や社会構造の変化も踏まえ、創造力・思考力・判断責任を果たす人的主体性を中核に「人間力」の向上を図る</li>
+      </ul>
+    </details>
+  </div>
+</section>
+
+<section>
+  <p class="sec-label">運用 ── ４つの原則</p>
+  <h2 class="sec-title">計画を「作って終わり」にしないためのルール</h2>
+  <div class="princ-grid">
+    <div class="princ">イノベーション促進とリスク対応の両立<span>攻めと守りをセットで進める</span></div>
+    <div class="princ">アジャイルな対応<span>柔軟かつ迅速に方針を修正する</span></div>
+    <div class="princ">挑戦と学習<span>やってみて学び、次に活かす</span></div>
+    <div class="princ">内外一体での政策推進<span>国内政策と国際連携を一体で動かす</span></div>
+  </div>
+  <p class="note">この基本計画は<strong>当面、毎年変更（アップデート）</strong>され、適切なベンチマーク（KPI等）を設定してモニタリングされます。政府一丸でＡＸ推進に必要な体制を構築し、あらゆる制度や運用を率先して見直すとしています。</p>
+</section>
+
+<section>
+  <p class="sec-label">付録</p>
+  <h2 class="sec-title">用語ミニ辞典</h2>
+  <dl>
+    <div class="term"><dt>エージェント型ＡＩ</dt><dd>指示への回答だけでなく、目標に向けて自分で判断・計画し、一連の業務を自律的に実行するＡＩ。この計画全体の前提になっている概念です。</dd></div>
+    <div class="term"><dt>ＡＸ（ＡＩトランスフォーメーション）</dt><dd>ＡＩがあることを前提に、意思決定や業務の進め方を根底から見直すこと。DX（デジタルトランスフォーメーション）のＡＩ版にあたるこの計画のキーワード。</dd></div>
+    <div class="term"><dt>バーティカルＡＩ</dt><dd>医療・金融・教育・防災など、特定の業界・領域に特化したＡＩ。日本の「現場の強み」を活かせる勝ち筋として位置づけられています。</dd></div>
+    <div class="term"><dt>フィジカルＡＩ</dt><dd>ロボットや自動運転など、物理世界で動くＡＩ。産業用ロボット・自動車産業で培った日本のものづくりの強みを活かす領域。</dd></div>
+    <div class="term"><dt>ＡＩ主権</dt><dd>ＡＩの開発・運用を他国に全面依存せず、戦略的な自律性と不可欠性を確保すること。計画では同志国と連携する「開かれた」主権を目指すとしています。</dd></div>
+    <div class="term"><dt>源内（げんない）</dt><dd>政府が推進するガバメントＡＩの名称。オープンソース化を通じて自治体への導入支援も進めるとされています。</dd></div>
+    <div class="term"><dt>ＡＩＳＩ</dt><dd>ＡＩセーフティ・インスティテュート。ＡＩモデルの評価やトレーサビリティなど、安全性の技術的評価を担う機関。国際ネットワークの活用も明記。</dd></div>
+    <div class="term"><dt>Project YATA-Shield</dt><dd>日本のサイバーセキュリティ確保に向けたプロジェクト。重要インフラ事業者への対応や脆弱性の発見・修正などを行うとされています。</dd></div>
+    <div class="term"><dt>AI for Science</dt><dd>科学研究そのものにＡＩを活用する取組。基礎研究や研究インフラの構築、研究データの戦略的管理などが含まれます。</dd></div>
+  </dl>
+</section>
+
+<footer>
+  <p>出典：<a href="https://www8.cao.go.jp/cstp/ai/ai_plan/aiplan_g_20260714.pdf">第Ⅱ期人工知能基本計画（概要）（内閣府・2026年7月14日）</a><br>
+  このページは元のPDF（全6ページ）の内容を、構成を保ったまま読みやすく再編集した非公式のまとめです。正確な内容は必ず原典をご確認ください。</p>
+</footer>
+</div>
