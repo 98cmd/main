@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prism Glass UI — html-in-canvas + Three.js</title>
+  <style>
+    :root {
+      --bg: #000;
+      --text: #f5f7ff;
+      --muted: #b7bdd7;
+      --line: rgba(255,255,255,0.16);
+      --panel: rgba(255,255,255,0.06);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans JP", sans-serif; overflow: hidden; }
+    #stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+    /* HTML source tree (drawn into canvas via drawElementImage) */
+    #uiRoot {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -10;
+      contain: layout style paint;
+      color: var(--text);
+      background: #000;
+    }
+    .nav {
+      position: absolute;
+      left: 4vw; right: 4vw; top: 2.8vh;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: clamp(13px, 0.88vw, 17px);
+      letter-spacing: .01em;
+    }
+    .nav-left { display: flex; gap: 2.4vw; align-items: center; }
+    .logo { font-weight: 600; opacity: .96; }
+    .links { display: flex; gap: 1.9vw; color: rgba(255,255,255,.82); }
+    .signin { color: rgba(255,255,255,.88); }
+
+    .hero {
+      position: absolute;
+      left: 6.5vw;
+      top: 15.5vh;
+      width: min(42vw, 760px);
+      min-height: 56vh;
+      border-radius: 32px;
+      background: linear-gradient(160deg, rgba(255,255,255,0.22), rgba(255,255,255,0.03) 42%, rgba(255,255,255,0.01));
+      border: 1px solid var(--line);
+      padding: clamp(28px, 2.3vw, 46px);
+      display: flex; flex-direction: column; justify-content: flex-start;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -22px 70px rgba(15,20,45,0.2);
+      backdrop-filter: blur(9px) saturate(120%);
+    }
+    .eyebrow { font-size: clamp(11px, .66vw, 14px); letter-spacing: .18em; opacity: .72; margin-bottom: clamp(20px, 2.5vh, 42px); }
+    h1 { margin: 0; font-size: clamp(38px, 4.5vw, 88px); line-height: .98; font-weight: 520; letter-spacing: -0.02em; max-width: 10ch; }
+    .sub { margin-top: clamp(18px, 2vh, 34px); max-width: 46ch; line-height: 1.55; color: rgba(229,235,255,.8); font-size: clamp(14px, 1vw, 18px); }
+    .cta { margin-top: clamp(24px, 3.2vh, 46px); display: flex; gap: 14px; align-items: center; }
+    button {
+      pointer-events: auto;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.18);
+      font-size: clamp(14px, .95vw, 16px);
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: transform .2s ease, opacity .2s ease;
+    }
+    .open { background: #fff; color: #111; border-color: rgba(255,255,255,.75); font-weight: 560; }
+    .paper { background: rgba(255,255,255,.06); color: rgba(250,252,255,.95); }
+    button:hover { transform: translateY(-1px); }
+
+    .shard {
+      position: absolute;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.17);
+      background: linear-gradient(148deg, rgba(255,255,255,.22), rgba(255,255,255,.02) 44%, rgba(255,255,255,.00));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.3);
+      backdrop-filter: blur(7px);
+    }
+    .s1 { right: 12vw; top: 18vh; width: 24vw; height: 22vh; transform: rotate(-12deg); }
+    .s2 { right: 6vw; top: 46vh; width: 18vw; height: 34vh; transform: rotate(18deg); }
+    .s3 { right: 31vw; top: 58vh; width: 14vw; height: 19vh; transform: rotate(-22deg); }
+    .s4 { left: 53vw; top: 34vh; width: 11vw; height: 16vh; transform: rotate(28deg); }
+
+    @media (max-width: 1100px) {
+      .hero { width: 86vw; left: 7vw; top: 16vh; min-height: 50vh; }
+      .s1, .s2, .s3, .s4 { opacity: .7; }
+      .links { gap: 4.5vw; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="stage"></canvas>
+
+  <div id="uiRoot">
+    <nav class="nav">
+      <div class="nav-left">
+        <div class="logo">Prism</div>
+        <div class="links"><span>Studio</span><span>Materials</span><span>Pricing</span></div>
+      </div>
+      <div class="signin">Sign in</div>
+    </nav>
+
+    <section class="hero">
+      <div class="eyebrow">REAL-TIME MATERIAL STUDIO</div>
+      <h1>Designed in glass.</h1>
+      <div class="sub">Author dispersion, transmission, and refraction in the browser. Live previews, real materials.</div>
+      <div class="cta">
+        <button class="open">Open studio</button>
+        <button class="paper">Read paper →</button>
+      </div>
+    </section>
+
+    <div class="shard s1"></div>
+    <div class="shard s2"></div>
+    <div class="shard s3"></div>
+    <div class="shard s4"></div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js';
+
+    const canvas = document.getElementById('stage');
+    const uiRoot = document.getElementById('uiRoot');
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight, false);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+    const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 8.2);
+
+    const rt = new THREE.WebGLRenderTarget(innerWidth * Math.min(devicePixelRatio,2), innerHeight * Math.min(devicePixelRatio,2), { depthBuffer: false });
+    const uiCanvas = document.createElement('canvas');
+    const uictx = uiCanvas.getContext('2d', { alpha: true, desynchronized: true });
+    const uiTex = new THREE.CanvasTexture(uiCanvas);
+    uiTex.colorSpace = THREE.SRGBColorSpace;
+
+    function resizeUI() {
+      const w = Math.floor(innerWidth * Math.min(devicePixelRatio,2));
+      const h = Math.floor(innerHeight * Math.min(devicePixelRatio,2));
+      uiCanvas.width = w; uiCanvas.height = h;
+      uictx.setTransform(w / innerWidth, 0, 0, h / innerHeight, 0, 0);
+      rt.setSize(w, h);
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight, false);
+    }
+
+    async function drawUIFromHTML() {
+      uictx.clearRect(0, 0, innerWidth, innerHeight);
+      if ('drawElementImage' in uictx && 'layoutSubtree' in uiRoot) {
+        uiRoot.layoutSubtree?.({ layout: true, paint: true, compositing: true });
+        await uictx.drawElementImage(uiRoot, 0, 0);
+      } else {
+        uictx.fillStyle = '#000'; uictx.fillRect(0,0,innerWidth,innerHeight);
+      }
+      uiTex.needsUpdate = true;
+    }
+
+    const baseUniforms = {
+      tScene: { value: rt.texture },
+      tUI: { value: uiTex },
+      uTime: { value: 0 },
+      uMouse: { value: new THREE.Vector2(0,0) },
+      uRes: { value: new THREE.Vector2(innerWidth, innerHeight) }
+    };
+
+    const vtx = `varying vec2 vUv; varying vec3 vNormal; varying vec3 vWorld; void main(){vUv=uv; vec4 wp=modelMatrix*vec4(position,1.0); vWorld=wp.xyz; vNormal=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*wp;}`;
+    const frag = `precision highp float; varying vec2 vUv; varying vec3 vNormal; uniform sampler2D tScene; uniform sampler2D tUI; uniform vec2 uRes; uniform vec2 uMouse; uniform float uTime;
+      vec3 spectrum(float t){return clamp(vec3(sin(6.2831*(t+0.0))*0.5+0.5,sin(6.2831*(t+0.33))*0.5+0.5,sin(6.2831*(t+0.66))*0.5+0.5),0.,1.);} 
+      void main(){
+        vec2 uv = gl_FragCoord.xy / uRes;
+        vec3 N = normalize(vNormal);
+        vec3 V = normalize(cameraPosition - vWorld);
+        float fres = pow(1.0 - max(dot(N,V),0.0), 3.0);
+        vec2 bend = N.xy * 0.05 + uMouse*0.015;
+        vec2 ca = vec2(0.003,0.0) * (0.5 + fres);
+        float r = texture2D(tScene, uv + bend + ca).r;
+        float g = texture2D(tScene, uv + bend).g;
+        float b = texture2D(tScene, uv + bend - ca).b;
+        vec3 refr = vec3(r,g,b);
+        vec3 behind = texture2D(tUI, uv).rgb;
+        float iri = smoothstep(0.1,0.95,fres);
+        vec3 ir = spectrum(fres*0.7 + uTime*0.06) * iri;
+        vec3 col = mix(refr, behind, 0.18) + ir*0.26;
+        col += fres*0.35;
+        col *= vec3(0.92,0.97,1.08);
+        gl_FragColor = vec4(col, 0.22 + fres*0.55);
+      }`;
+
+    function glassMesh(w,h,x,y,z,r=0){
+      const g = new THREE.PlaneGeometry(w,h,1,1);
+      const m = new THREE.ShaderMaterial({ uniforms: THREE.UniformsUtils.clone(baseUniforms), vertexShader: vtx, fragmentShader: frag, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+      const mesh = new THREE.Mesh(g,m);
+      mesh.position.set(x,y,z);
+      mesh.rotation.z = r;
+      scene.add(mesh);
+      return mesh;
+    }
+
+    const shards = [
+      glassMesh(4.3, 4.4, -2.25, -0.15, 0.6, -0.05),
+      glassMesh(2.7, 1.7, 2.4, 1.4, 0.1, -0.23),
+      glassMesh(1.8, 3.2, 3.15, -1.05, 0.2, 0.34),
+      glassMesh(1.5, 1.2, 1.05, -2.12, 0.45, -0.4),
+      glassMesh(1.2, 1.6, 0.5, 0.58, 0.2, 0.5)
+    ];
+
+    let mx = 0, my = 0, tx = 0, ty = 0;
+    addEventListener('pointermove', (e)=>{
+      tx = (e.clientX / innerWidth) * 2 - 1;
+      ty = -((e.clientY / innerHeight) * 2 - 1);
+    });
+
+    addEventListener('resize', () => { resizeUI(); drawUIFromHTML(); });
+
+    if ('onpaint' in uiRoot) {
+      uiRoot.onpaint = () => { drawUIFromHTML(); };
+    }
+
+    resizeUI();
+    await drawUIFromHTML();
+
+    const dummyScene = new THREE.Scene();
+    const bgPlane = new THREE.Mesh(new THREE.PlaneGeometry(20, 12), new THREE.MeshBasicMaterial({ map: uiTex, transparent: false }));
+    bgPlane.position.z = -2;
+    dummyScene.add(bgPlane);
+
+    const clock = new THREE.Clock();
+    (function tick(){
+      const t = clock.getElapsedTime();
+      mx += (tx - mx) * 0.06;
+      my += (ty - my) * 0.06;
+
+      camera.position.x = mx * 0.22;
+      camera.position.y = my * 0.16;
+      camera.lookAt(0,0,0);
+
+      shards.forEach((s, i) => {
+        s.rotation.x = my * 0.12 + Math.sin(t*0.28 + i)*0.02;
+        s.rotation.y = -mx * 0.14 + Math.cos(t*0.22 + i)*0.02;
+        s.material.uniforms.uTime.value = t;
+        s.material.uniforms.uMouse.value.set(mx,my);
+        s.material.uniforms.uRes.value.set(innerWidth, innerHeight);
+      });
+
+      renderer.setRenderTarget(rt);
+      renderer.render(dummyScene, camera);
+      renderer.setRenderTarget(null);
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    })();
+  </script>
+</body>
+</html>
