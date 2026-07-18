@@ -1,0 +1,12 @@
+# Build/output artifacts that we don't want in source control
+client_report/
+*.pyc
+__pycache__/
+.venv/
+.env
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
